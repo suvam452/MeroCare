@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Easing,
 } from 'react-native';
 // We only import the necessary SVG components to minimize potential issues
+import LoginScreen from './Login';
 import Svg, { Path, Circle } from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
@@ -82,6 +83,7 @@ const HeartLogo = () => {
 // --- Main App Component ---
 
 const App = () => {
+  const [showLogin, setShowLogin] = useState(false);
   const slideAnim = useRef(new Animated.Value(height * 0.5)).current; // Start the card below the screen
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -101,6 +103,11 @@ const App = () => {
       }),
     ]).start();
   }, [slideAnim, fadeAnim]);
+
+ // if login screen should be shown
+ if (showLogin){
+  return <LoginScreen onBack={() => setShowLogin(false)} />;
+ }
 
   return (
     <View style={styles.container}>
@@ -134,7 +141,11 @@ const App = () => {
             <Text style={styles.tagline}>“Your Heath Our Care”</Text>
 
             {/* Login Button */}
-            <TouchableOpacity style={styles.loginButton} activeOpacity={0.8}>
+            <TouchableOpacity 
+            style={styles.loginButton} 
+            activeOpacity={0.8}
+            onPress={()=>setShowLogin(true)}
+            >
               <Text style={styles.loginButtonText}>LOGIN</Text>
             </TouchableOpacity>
 
