@@ -1,3 +1,4 @@
+// Landing.tsx
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -21,9 +22,10 @@ const LIGHT_GRAY = '#EEEEEE';
 interface LandingProps {
   userName: string;
   onLogout: () => void;
+  onOpenCheck: () => void;
 }
 
-const Landing = ({ userName, onLogout }: LandingProps) => {
+const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const familyMembers = [
@@ -88,7 +90,7 @@ const Landing = ({ userName, onLogout }: LandingProps) => {
               </Text>
               <TouchableOpacity
                 style={styles.clickButton}
-                onPress={() => Alert.alert('Symptoms', 'Check symptoms')}
+                onPress={onOpenCheck}
               >
                 <Text style={styles.clickButtonText}>Click</Text>
               </TouchableOpacity>

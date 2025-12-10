@@ -1,3 +1,4 @@
+// App.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -12,6 +13,7 @@ import {
 import LoginScreen from './Login';
 import SignUpScreen from './Signup';
 import Landing from './Landing';
+import Check from './Check';
 import Svg, { Path, Circle } from 'react-native-svg';
 
 const { height } = Dimensions.get('window');
@@ -68,7 +70,8 @@ const HeartLogo = () => {
   );
 };
 
-type ScreenType = 'welcome' | 'login' | 'signup' | 'landing';
+// add 'check' here
+type ScreenType = 'welcome' | 'login' | 'signup' | 'landing' | 'check';
 
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('welcome');
@@ -125,8 +128,14 @@ const App = () => {
       <Landing
         userName={userName}
         onLogout={() => setCurrentScreen('login')}
+        onOpenCheck={() => setCurrentScreen('check')}
       />
     );
+  }
+
+  // CHECK SCREEN (intro + chat)
+  if (currentScreen === 'check') {
+    return <Check onBackToLanding={() => setCurrentScreen('landing')} />;
   }
 
   // WELCOME SCREEN
@@ -151,7 +160,6 @@ const App = () => {
             <Text style={styles.title}>Mero-Care</Text>
             <Text style={styles.tagline}>"Your Heath Our Care"</Text>
 
-            {/* LOGIN BUTTON */}
             <TouchableOpacity
               style={styles.loginButton}
               activeOpacity={0.8}
@@ -160,7 +168,6 @@ const App = () => {
               <Text style={styles.loginButtonText}>LOGIN</Text>
             </TouchableOpacity>
 
-            {/* DON'T HAVE ACCOUNT? SIGN UP LINK */}
             <View style={styles.signupRow}>
               <Text style={styles.signupText}>Don't have an account? </Text>
               <TouchableOpacity
@@ -239,12 +246,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   signupText: {
-    color: '#c5d4dd', // light grey text: "Don't have an account?"
+    color: '#c5d4dd',
     fontSize: 14,
     fontWeight: '500',
   },
   signupLink: {
-    color: '#3c6f82', // darker teal/blue: "Sign up!"
+    color: '#3c6f82',
     fontSize: 14,
     fontWeight: '700',
   },
