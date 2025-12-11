@@ -1,5 +1,5 @@
-// Landing.tsx
-import React, { useState } from 'react';
+// BACKEND: Integrate API calls (health history, add family, reminders) inside handleServicePress and onOpenCheck — connect to your backend endpoints here.
+import React, { useEffect, useRef, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -10,14 +10,19 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  Animated,
+  Easing,
+  Pressable,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-const THEME_COLOR = '#265E68';
-const TEXT_COLOR = '#333';
-const ACCENT_COLOR = '#2E8B9E';
-const LIGHT_GRAY = '#EEEEEE';
+// Green-themed palette (uplifted, accessible contrast)
+const THEME_COLOR = '#255E67';
+const TEXT_COLOR = '#133D2E';
+const ACCENT_COLOR = '#2FA678';
+const LIGHT_GRAY = '#F2F7F5';
+const SOFT_BG = '#FAFFFB';
 
 interface LandingProps {
   userName: string;
@@ -28,16 +33,28 @@ interface LandingProps {
 const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Animated value for drawer (0 closed, 1 open)
+  const menuAnim = useRef(new Animated.Value(0)).current;
+  const menuWidth = Math.min(360, Math.round(width * 0.82));
+
+  useEffect(() => {
+    Animated.timing(menuAnim, {
+      toValue: menuOpen ? 1 : 0,
+      duration: 280,
+      useNativeDriver: true,
+      easing: Easing.out(Easing.cubic),
+    }).start();
+  }, [menuOpen, menuAnim]);
+
   const familyMembers = [
-    { id: 1, name: 'Father', relation: 'father', emoji: '👨' },
-    { id: 2, name: 'Mother', relation: 'mother', emoji: '👩' },
+    { id: 1, name: 'Father', relation: 'Father', emoji: '👨' },
+    { id: 2, name: 'Mother', relation: 'Mother', emoji: '👩' },
   ];
 
   const services = [
-    { id: 1, title: 'Current\ndisease', icon: '🏥' },
-    { id: 2, title: 'Add\nmember', icon: '➕' },
-    { id: 3, title: 'Health\nHistory', icon: '📋' },
-    { id: 4, title: 'Old\ndisease', icon: '📚' },
+    { id: 'history', title: 'Health\nHistory', icon: '📋' },
+    { id: 'add_family', title: 'Add\nFamily', icon: '➕' },
+    { id: 'reminder', title: 'Reminder', icon: '⏰' },
   ];
 
   const confirmLogout = () => {
@@ -47,22 +64,86 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
     ]);
   };
 
+  const translateX = menuAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-menuWidth - 10, 0],
+  });
+
+  const overlayOpacity = menuAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.5],
+  });
+
+  const handleServicePress = (serviceId: string) => {
+    // Hook for backend calls: call API here to fetch or create resources
+    switch (serviceId) {
+      case 'history':
+        Alert.alert('Health History', 'Open health history — hook backend here.');
+        break;
+      case 'add_family':
+        Alert.alert('Add Family', 'Open add family form or modal.');
+        break;
+      case 'reminder':
+        Alert.alert('Reminder', 'Open reminders (create/view).');
+        break;
+      default:
+        Alert.alert('Service', 'Unknown service');
+    }
+  };
+
+  const MenuItem = ({
+    icon,
+    label,
+    onPress,
+  }: {
+    icon: string;
+    label: string;
+    onPress?: () => void;
+  }) => (
+    <TouchableOpacity
+      style={styles.menuItem}
+      onPress={() => {
+        setMenuOpen(false);
+        onPress && onPress();
+      }}
+      activeOpacity={0.75}
+    >
+      <View style={styles.menuItemIconWrap}>
+        <Text style={styles.menuItemIcon}>{icon}</Text>
+      </View>
+      <Text style={styles.menuItemLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
+
+  const onChangePhoto = () => {
+    Alert.alert('Change Photo', 'Use camera or gallery (integrate later)', [
+      { text: 'Take photo', onPress: () => Alert.alert('Take photo') },
+      { text: 'Pick from gallery', onPress: () => Alert.alert('Pick from gallery') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="dark-content" backgroundColor={SOFT_BG} />
 
       <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
         <View style={styles.headerContainer}>
           <View style={styles.headerLeft}>
             <TouchableOpacity
               style={styles.menuButton}
               onPress={() => setMenuOpen(!menuOpen)}
+              accessibilityLabel="Open menu"
             >
-              <Text style={styles.menuIcon}>☰</Text>
+              <View style={styles.hamburgerWrap}>
+                <Text style={styles.menuIcon}>☰</Text>
+              </View>
             </TouchableOpacity>
+
             <View style={styles.headerText}>
               <Text style={styles.greetingText}>Hi {userName}!</Text>
-              <Text style={styles.subText}>How are u feeling today?</Text>
+              <Text style={styles.subText}>How are you feeling today?</Text>
             </View>
           </View>
 
@@ -70,36 +151,46 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
             <TouchableOpacity style={styles.iconButton}>
               <Text style={styles.iconText}>🔔</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={confirmLogout}
-            >
+            <TouchableOpacity style={styles.iconButton} onPress={confirmLogout}>
               <Text style={styles.iconText}>🚪</Text>
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Main content */}
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Symptom card - refreshed */}
           <View style={styles.symptomCard}>
-            <View style={styles.symptomTextContainer}>
-              <Text style={styles.symptomTitle}>
-                Lets check the{'\n'}symptoms
-              </Text>
-              <TouchableOpacity
-                style={styles.clickButton}
-                onPress={onOpenCheck}
-              >
-                <Text style={styles.clickButtonText}>Click</Text>
-              </TouchableOpacity>
+            <View style={styles.symptomTopRow}>
+              <View style={styles.emojiCircle}>
+                <Text style={styles.emojiBig}>🩺</Text>
+              </View>
+
+              <View style={styles.symptomRightText}>
+                <Text style={styles.symptomTitle}>Let's check the symptoms</Text>
+                <Text style={styles.symptomSubtitle}>Just Click To Enjoy Service</Text>
+              </View>
             </View>
-            <View style={styles.symptomImageContainer}>
-              <Text style={styles.symptomEmoji}>👨‍⚕️👩</Text>
+
+            <View style={styles.symptomBottomRow}>
+              <TouchableOpacity
+                style={styles.clickButtonPrimary}
+                onPress={onOpenCheck}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.clickButtonPrimaryText}>Start Check</Text>
+              </TouchableOpacity>
+
+              <View style={styles.smallEmojiWrap}>
+                <Text style={styles.smallEmoji}>👩‍⚕️</Text>
+              </View>
             </View>
           </View>
 
+          {/* Services section */}
           <View style={styles.servicesSection}>
             <Text style={styles.sectionTitle}>Services</Text>
             <View style={styles.servicesGrid}>
@@ -107,7 +198,8 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
                 <TouchableOpacity
                   key={service.id}
                   style={styles.serviceCard}
-                  onPress={() => Alert.alert('Service', service.title)}
+                  onPress={() => handleServicePress(service.id)}
+                  activeOpacity={0.85}
                 >
                   <View style={styles.serviceIconContainer}>
                     <Text style={styles.serviceIcon}>{service.icon}</Text>
@@ -118,10 +210,11 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
             </View>
           </View>
 
+          {/* Family list */}
           <View style={styles.familySection}>
             <View style={styles.familyHeader}>
               <Text style={styles.sectionTitle}>Family Member</Text>
-              <TouchableOpacity onPress={() => Alert.alert('See all')}>
+              <TouchableOpacity onPress={() => Alert.alert('See all family')}>
                 <Text style={styles.seeAllText}>See all</Text>
               </TouchableOpacity>
             </View>
@@ -136,127 +229,267 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
                   <Text style={styles.avatarEmoji}>{member.emoji}</Text>
                 </View>
                 <View style={styles.familyInfo}>
-                  <Text style={styles.familyName}>({member.name})</Text>
+                  <Text style={styles.familyName}>{member.name}</Text>
                   <Text style={styles.familyRelation}>{member.relation}</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
 
-          <View style={{ height: 30 }} />
+          <View style={{ height: 32 }} />
         </ScrollView>
+
+        {/* Drawer overlay */}
+        <Animated.View
+          pointerEvents={menuOpen ? 'auto' : 'none'}
+          style={[styles.overlayContainer, { opacity: menuAnim }]}
+        >
+          <Pressable style={styles.fullOverlay} onPress={() => setMenuOpen(false)}>
+            <Animated.View style={[styles.scrim, { opacity: overlayOpacity }]} />
+          </Pressable>
+        </Animated.View>
+
+        {/* Drawer */}
+        <Animated.View
+          style={[
+            styles.drawer,
+            {
+              width: menuWidth,
+              transform: [{ translateX }],
+            },
+          ]}
+        >
+          <View style={styles.drawerInner}>
+            <View style={styles.drawerTopRow}>
+              <TouchableOpacity
+                style={styles.innerMenuBtn}
+                onPress={() => setMenuOpen(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.innerMenuBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={styles.drawerScroll}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.profileSection}>
+                <TouchableOpacity onPress={onChangePhoto} style={styles.profileCircle}>
+                  <Text style={styles.profileInitial}>{userName ? userName[0].toUpperCase() : 'U'}</Text>
+                </TouchableOpacity>
+
+                <View style={styles.profileText}>
+                  <Text style={styles.profileName}>{userName}</Text>
+                  <Text style={styles.profilePhone}>9840000000</Text>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.menuItems}>
+                <MenuItem icon="ℹ️" label="About me" onPress={() => Alert.alert('About me')} />
+                <MenuItem icon="✏️" label="Edit details" onPress={() => Alert.alert('Edit details')} />
+                <MenuItem icon="🔒" label="Change password" onPress={() => Alert.alert('Change password')} />
+                <MenuItem icon="👨‍👩‍👦" label="Add people" onPress={() => Alert.alert('Add people')} />
+                <MenuItem icon="📷" label="Change photo" onPress={onChangePhoto} />
+              </View>
+
+              <View style={{ height: 36 }} />
+            </ScrollView>
+
+            <View style={styles.drawerBottom}>
+              <TouchableOpacity
+                style={styles.logoutRow}
+                onPress={() => {
+                  setMenuOpen(false);
+                  confirmLogout();
+                }}
+                activeOpacity={0.85}
+              >
+                <View style={styles.logoutIconWrap}>
+                  <Text style={styles.logoutIcon}>⤴️</Text>
+                </View>
+                <Text style={styles.logoutText}>Log out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
       </SafeAreaView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#fff' },
+  mainContainer: { flex: 1, backgroundColor: SOFT_BG },
   safeArea: { flex: 1 },
+
+  /* Header */
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: SOFT_BG,
     borderBottomWidth: 1,
     borderBottomColor: LIGHT_GRAY,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  menuButton: { padding: 8, marginRight: 12 },
-  menuIcon: { fontSize: 24, color: TEXT_COLOR, fontWeight: 'bold' },
+  menuButton: { padding: 6, marginRight: 12 },
+  hamburgerWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  menuIcon: { fontSize: 20, color: TEXT_COLOR, fontWeight: '700' },
   headerText: { flex: 1 },
-  greetingText: { fontSize: 18, fontWeight: '700', color: TEXT_COLOR },
+  greetingText: { fontSize: 18, fontWeight: '900', color: TEXT_COLOR },
   subText: { fontSize: 13, color: ACCENT_COLOR, marginTop: 2 },
   headerRight: { flexDirection: 'row', gap: 12 },
   iconButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: LIGHT_GRAY,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#D0D0D0',
+    borderWidth: 1,
+    borderColor: LIGHT_GRAY,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  iconText: { fontSize: 20 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16 },
+  iconText: { fontSize: 18 },
+
+  /* Main scroll content */
+  scrollContent: { paddingHorizontal: 18, paddingTop: 18 },
+
+  /* Symptom Card */
   symptomCard: {
     backgroundColor: THEME_COLOR,
-    borderRadius: 24,
-    padding: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    minHeight: 160,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 20,
+    minHeight: 140,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 10,
   },
-  symptomTextContainer: { flex: 1 },
-  symptomTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 16,
-    lineHeight: 28,
-  },
-  clickButton: {
+  symptomTopRow: { flexDirection: 'row', alignItems: 'center' },
+  emojiCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
     backgroundColor: '#fff',
-    borderRadius: 24,
-    paddingHorizontal: 28,
-    paddingVertical: 10,
-    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  clickButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+  emojiBig: { fontSize: 36 },
+  symptomRightText: { flex: 1 },
+  symptomTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  symptomSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.92)' },
+
+  symptomBottomRow: {
+    flexDirection: 'row',
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  clickButtonPrimary: {
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 150,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  clickButtonPrimaryText: {
     color: THEME_COLOR,
+    fontWeight: '900',
+    fontSize: 15,
   },
-  symptomImageContainer: {
-    flex: 0.6,
+  smallEmojiWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.14)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  symptomEmoji: { fontSize: 48 },
-  servicesSection: { marginBottom: 28 },
+  smallEmoji: { fontSize: 22 },
+
+  /* Services */
+  servicesSection: { marginBottom: 22 },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: TEXT_COLOR,
     marginBottom: 14,
   },
   servicesGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   serviceCard: {
-    width: '23%',
-    aspectRatio: 1,
+    width: '31%',
+    aspectRatio: 0.95,
     backgroundColor: '#fff',
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#EEF7F2',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 3,
   },
   serviceIconContainer: {
-    width: 50,
-    height: 50,
+    width: 60,
+    height: 60,
     borderRadius: 16,
-    backgroundColor: LIGHT_GRAY,
+    backgroundColor: SOFT_BG,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   serviceIcon: { fontSize: 24 },
   serviceTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: ACCENT_COLOR,
+    fontSize: 13,
+    fontWeight: '800',
+    color: TEXT_COLOR,
     textAlign: 'center',
     lineHeight: 16,
   },
+
+  /* Family */
   familySection: { marginBottom: 16 },
   familyHeader: {
     flexDirection: 'row',
@@ -264,39 +497,196 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  seeAllText: { fontSize: 12, fontWeight: '600', color: ACCENT_COLOR },
+  seeAllText: { fontSize: 12, fontWeight: '700', color: ACCENT_COLOR },
   familyMemberCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
     borderWidth: 1,
     borderColor: LIGHT_GRAY,
+    shadowColor: '#000',
+    shadowOpacity: 0.02,
+    shadowRadius: 6,
+    elevation: 2,
   },
   familyAvatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 14,
     backgroundColor: THEME_COLOR,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
-  avatarEmoji: { fontSize: 36 },
+  avatarEmoji: { fontSize: 26, color: '#fff' },
   familyInfo: { flex: 1 },
   familyName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: TEXT_COLOR,
     marginBottom: 2,
   },
   familyRelation: {
     fontSize: 12,
     color: ACCENT_COLOR,
-    fontWeight: '500',
+    fontWeight: '700',
+  },
+
+  /* Drawer styles (polished spacing) */
+  overlayContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+  },
+  fullOverlay: {
+    flex: 1,
+  },
+  scrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
+  },
+  drawer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 11,
+    backgroundColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 3, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 22,
+  },
+  drawerInner: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderTopRightRadius: 18,
+    borderBottomRightRadius: 18,
+    overflow: 'hidden',
+  },
+
+  drawerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingTop: 6,
+    paddingBottom: 6,
+  },
+  innerMenuBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: SOFT_BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  innerMenuBtnText: { fontSize: 20, color: TEXT_COLOR },
+
+  drawerScroll: {
+    paddingBottom: 10,
+  },
+
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 8,
+  },
+  profileCircle: {
+    width: 92,
+    height: 92,
+    borderRadius: 22,
+    backgroundColor: '#EAF8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  profileInitial: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: THEME_COLOR,
+  },
+  profileText: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: TEXT_COLOR,
+  },
+  profilePhone: {
+    fontSize: 12,
+    color: '#8FBBA1',
+    marginTop: 6,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: LIGHT_GRAY,
+    marginVertical: 16,
+  },
+
+  menuItems: {
+    flex: 1,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+  },
+  menuItemIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#E8FBEE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.02,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  menuItemIcon: { fontSize: 18 },
+  menuItemLabel: {
+    fontSize: 15,
+    color: TEXT_COLOR,
+    fontWeight: '800',
+  },
+
+  drawerBottom: {
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: LIGHT_GRAY,
+  },
+  logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoutIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  logoutIcon: { fontSize: 18 },
+  logoutText: {
+    fontSize: 15,
+    color: TEXT_COLOR,
+    fontWeight: '900',
   },
 });
 
