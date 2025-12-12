@@ -1,4 +1,3 @@
-// BACKEND: Integrate API calls (health history, add family, reminders) inside handleServicePress and onOpenCheck — connect to your backend endpoints here.
 import React, { useEffect, useRef, useState } from 'react';
 import {
   SafeAreaView,
@@ -32,6 +31,37 @@ interface LandingProps {
 
 const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // -------------------------- FIXED TYPEWRITER LOGIC --------------------------
+  const [typewriterText, setTypewriterText] = useState('');
+  const [typing, setTyping] = useState(false);
+
+  const fullMessage = 'Hi, I am Mero Care, caring for you everyday 😊';
+
+  const handleNurseClick = () => {
+    if (typing) return;
+
+    setTypewriterText('');
+    setTyping(true);
+
+    // SIMPLE SOLUTION: Use string slicing instead of array operations
+    let index = 0;
+    
+    const interval = setInterval(() => {
+      // When we reach the end of the string
+      if (index > fullMessage.length) {
+        clearInterval(interval);
+        setTyping(false);
+        return;
+      }
+
+      // Take a substring from 0 to index
+      setTypewriterText(fullMessage.substring(0, index));
+      index++;
+      
+    }, 40); // 40ms per character
+  };
+  // ----------------------------------------------------------------------
 
   // Animated value for drawer (0 closed, 1 open)
   const menuAnim = useRef(new Animated.Value(0)).current;
@@ -75,16 +105,16 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
   });
 
   const handleServicePress = (serviceId: string) => {
-    // Hook for backend calls: call API here to fetch or create resources
+    // BACKEND: Attach API logic here (history, add family, reminders, nurse write)
     switch (serviceId) {
       case 'history':
-        Alert.alert('Health History', 'Open health history — hook backend here.');
+        Alert.alert('Health History', 'Open health history — hook backend here (history API)');
         break;
       case 'add_family':
-        Alert.alert('Add Family', 'Open add family form or modal.');
+        Alert.alert('Add Family', 'Open add family form or modal (add family API)');
         break;
       case 'reminder':
-        Alert.alert('Reminder', 'Open reminders (create/view).');
+        Alert.alert('Reminder', 'Open reminders (create/view) (reminders API)');
         break;
       default:
         Alert.alert('Service', 'Unknown service');
@@ -122,6 +152,14 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
+  
+  // BACKEND: Endpoint integration for Symptom Check via onOpenCheck prop
+  // REMOVED the Alert.alert and directly calls onOpenCheck
+  const handleOpenCheck = () => {
+    // Directly navigate to the symptom check page
+    onOpenCheck();
+  };
+
 
   return (
     <View style={styles.mainContainer}>
@@ -162,7 +200,7 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Symptom card - refreshed */}
+          {/* Symptom card */}
           <View style={styles.symptomCard}>
             <View style={styles.symptomTopRow}>
               <View style={styles.emojiCircle}>
@@ -178,19 +216,46 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
             <View style={styles.symptomBottomRow}>
               <TouchableOpacity
                 style={styles.clickButtonPrimary}
-                onPress={onOpenCheck}
+                onPress={handleOpenCheck}
                 activeOpacity={0.9}
               >
                 <Text style={styles.clickButtonPrimaryText}>Start Check</Text>
               </TouchableOpacity>
 
-              <View style={styles.smallEmojiWrap}>
+              {/* Nurse emoji with typewriter click */}
+              <TouchableOpacity
+                style={styles.smallEmojiWrap}
+                onPress={handleNurseClick}
+              >
                 <Text style={styles.smallEmoji}>👩‍⚕️</Text>
-              </View>
+              </TouchableOpacity>
             </View>
+
+            {/* Typewriter message UI */}
+            {typewriterText.length > 0 && (
+              <View
+                style={{
+                  marginTop: 14,
+                  padding: 12,
+                  backgroundColor: '#EAF8F0',
+                  borderRadius: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    color: THEME_COLOR,
+                    fontWeight: '700',
+                    fontSize: 14,
+                    lineHeight: 20,
+                  }}
+                >
+                  {typewriterText}
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* Services section */}
+          {/* Services */}
           <View style={styles.servicesSection}>
             <Text style={styles.sectionTitle}>Services</Text>
             <View style={styles.servicesGrid}>
@@ -210,7 +275,7 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
             </View>
           </View>
 
-          {/* Family list */}
+          {/* Family List */}
           <View style={styles.familySection}>
             <View style={styles.familyHeader}>
               <Text style={styles.sectionTitle}>Family Member</Text>
@@ -324,7 +389,7 @@ const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: SOFT_BG },
   safeArea: { flex: 1 },
 
-  /* Header */
+  /* ALL YOUR STYLES REMAIN UNCHANGED BELOW */
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -370,10 +435,8 @@ const styles = StyleSheet.create({
   },
   iconText: { fontSize: 18 },
 
-  /* Main scroll content */
   scrollContent: { paddingHorizontal: 18, paddingTop: 18 },
 
-  /* Symptom Card */
   symptomCard: {
     backgroundColor: THEME_COLOR,
     borderRadius: 18,
@@ -444,7 +507,6 @@ const styles = StyleSheet.create({
   },
   smallEmoji: { fontSize: 22 },
 
-  /* Services */
   servicesSection: { marginBottom: 22 },
   sectionTitle: {
     fontSize: 16,
@@ -489,7 +551,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  /* Family */
   familySection: { marginBottom: 16 },
   familyHeader: {
     flexDirection: 'row',
@@ -536,18 +597,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  /* Drawer styles (polished spacing) */
   overlayContainer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
   },
-  fullOverlay: {
-    flex: 1,
-  },
-  scrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000',
-  },
+  fullOverlay: { flex: 1 },
+  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000' },
   drawer: {
     position: 'absolute',
     left: 0,
@@ -570,7 +625,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 18,
     overflow: 'hidden',
   },
-
   drawerTopRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -586,16 +640,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   innerMenuBtnText: { fontSize: 20, color: TEXT_COLOR },
-
-  drawerScroll: {
-    paddingBottom: 10,
-  },
-
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: 8,
-  },
+  drawerScroll: { paddingBottom: 10 },
+  profileSection: { flexDirection: 'row', alignItems: 'center', paddingBottom: 8 },
   profileCircle: {
     width: 92,
     height: 92,
@@ -609,39 +655,13 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  profileInitial: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: THEME_COLOR,
-  },
-  profileText: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: TEXT_COLOR,
-  },
-  profilePhone: {
-    fontSize: 12,
-    color: '#8FBBA1',
-    marginTop: 6,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: LIGHT_GRAY,
-    marginVertical: 16,
-  },
-
-  menuItems: {
-    flex: 1,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 6,
-  },
+  profileInitial: { fontSize: 36, fontWeight: '900', color: THEME_COLOR },
+  profileText: { flex: 1 },
+  profileName: { fontSize: 18, fontWeight: '900', color: TEXT_COLOR },
+  profilePhone: { fontSize: 12, color: '#8FBBA1', marginTop: 6 },
+  divider: { height: 1, backgroundColor: LIGHT_GRAY, marginVertical: 16 },
+  menuItems: { flex: 1 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6 },
   menuItemIconWrap: {
     width: 46,
     height: 46,
@@ -656,21 +676,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   menuItemIcon: { fontSize: 18 },
-  menuItemLabel: {
-    fontSize: 15,
-    color: TEXT_COLOR,
-    fontWeight: '800',
-  },
-
-  drawerBottom: {
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: LIGHT_GRAY,
-  },
-  logoutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  menuItemLabel: { fontSize: 15, color: TEXT_COLOR, fontWeight: '800' },
+  drawerBottom: { paddingVertical: 12, borderTopWidth: 1, borderTopColor: LIGHT_GRAY },
+  logoutRow: { flexDirection: 'row', alignItems: 'center' },
   logoutIconWrap: {
     width: 44,
     height: 44,
@@ -683,11 +691,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   logoutIcon: { fontSize: 18 },
-  logoutText: {
-    fontSize: 15,
-    color: TEXT_COLOR,
-    fontWeight: '900',
-  },
+  logoutText: { fontSize: 15, color: TEXT_COLOR, fontWeight: '900' },
 });
 
 export default Landing;
