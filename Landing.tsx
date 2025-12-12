@@ -16,7 +16,7 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// Green-themed palette (uplifted, accessible contrast)
+// Green-themed palette 
 const THEME_COLOR = '#255E67';
 const TEXT_COLOR = '#133D2E';
 const ACCENT_COLOR = '#2FA678';
@@ -153,7 +153,7 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
     ]);
   };
   
-  // BACKEND: Endpoint integration for Symptom Check via onOpenCheck prop
+  // BACKEND: Endpoint integration for Symptom Check 
   // REMOVED the Alert.alert and directly calls onOpenCheck
   const handleOpenCheck = () => {
     // Directly navigate to the symptom check page
@@ -389,7 +389,6 @@ const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: SOFT_BG },
   safeArea: { flex: 1 },
 
-  /* ALL YOUR STYLES REMAIN UNCHANGED BELOW */
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
