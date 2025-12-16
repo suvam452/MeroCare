@@ -12,60 +12,68 @@ import {
   Animated,
   Easing,
   Pressable,
+  Modal,
+  Image,
 } from 'react-native';
+
 
 const { width } = Dimensions.get('window');
 
-// Green-themed palette 
+
 const THEME_COLOR = '#255E67';
 const TEXT_COLOR = '#133D2E';
 const ACCENT_COLOR = '#2FA678';
 const LIGHT_GRAY = '#F2F7F5';
 const SOFT_BG = '#FAFFFB';
 
+
+type NewBarMode = 'about' | 'edit' | 'password';
+
+
 interface LandingProps {
   userName: string;
   onLogout: () => void;
   onOpenCheck: () => void;
+  onOpenProfile: (mode: NewBarMode) => void;
 }
 
-const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
-  const [menuOpen, setMenuOpen] = useState(false);
 
-  // -------------------------- FIXED TYPEWRITER LOGIC --------------------------
+const Landing = ({
+  userName,
+  onLogout,
+  onOpenCheck,
+  onOpenProfile,
+}: LandingProps) => {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [typewriterText, setTypewriterText] = useState('');
   const [typing, setTyping] = useState(false);
+  const [photoModalVisible, setPhotoModalVisible] = useState(false);
 
   const fullMessage = 'Hi, I am Mero Care, caring for you everyday 😊';
 
+
   const handleNurseClick = () => {
     if (typing) return;
-
     setTypewriterText('');
     setTyping(true);
 
-    // SIMPLE SOLUTION: Use string slicing instead of array operations
+
     let index = 0;
-    
     const interval = setInterval(() => {
-      // When we reach the end of the string
       if (index > fullMessage.length) {
         clearInterval(interval);
         setTyping(false);
         return;
       }
-
-      // Take a substring from 0 to index
       setTypewriterText(fullMessage.substring(0, index));
       index++;
-      
-    }, 40); // 40ms per character
+    }, 40);
   };
-  // ----------------------------------------------------------------------
 
-  // Animated value for drawer (0 closed, 1 open)
+
   const menuAnim = useRef(new Animated.Value(0)).current;
   const menuWidth = Math.min(360, Math.round(width * 0.82));
+
 
   useEffect(() => {
     Animated.timing(menuAnim, {
@@ -74,18 +82,8 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
       useNativeDriver: true,
       easing: Easing.out(Easing.cubic),
     }).start();
-  }, [menuOpen, menuAnim]);
+  }, [menuOpen]);
 
-  const familyMembers = [
-    { id: 1, name: 'Father', relation: 'Father', emoji: '👨' },
-    { id: 2, name: 'Mother', relation: 'Mother', emoji: '👩' },
-  ];
-
-  const services = [
-    { id: 'history', title: 'Health\nHistory', icon: '📋' },
-    { id: 'add_family', title: 'Add\nFamily', icon: '➕' },
-    { id: 'reminder', title: 'Reminder', icon: '⏰' },
-  ];
 
   const confirmLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -94,32 +92,18 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
     ]);
   };
 
+
   const translateX = menuAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [-menuWidth - 10, 0],
   });
+
 
   const overlayOpacity = menuAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.5],
   });
 
-  const handleServicePress = (serviceId: string) => {
-    // BACKEND: Attach API logic here (history, add family, reminders, nurse write)
-    switch (serviceId) {
-      case 'history':
-        Alert.alert('Health History', 'Open health history — hook backend here (history API)');
-        break;
-      case 'add_family':
-        Alert.alert('Add Family', 'Open add family form or modal (add family API)');
-        break;
-      case 'reminder':
-        Alert.alert('Reminder', 'Open reminders (create/view) (reminders API)');
-        break;
-      default:
-        Alert.alert('Service', 'Unknown service');
-    }
-  };
 
   const MenuItem = ({
     icon,
@@ -136,7 +120,6 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
         setMenuOpen(false);
         onPress && onPress();
       }}
-      activeOpacity={0.75}
     >
       <View style={styles.menuItemIconWrap}>
         <Text style={styles.menuItemIcon}>{icon}</Text>
@@ -145,45 +128,32 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
     </TouchableOpacity>
   );
 
-  const onChangePhoto = () => {
-    Alert.alert('Change Photo', 'Use camera or gallery (integrate later)', [
-      { text: 'Take photo', onPress: () => Alert.alert('Take photo') },
-      { text: 'Pick from gallery', onPress: () => Alert.alert('Pick from gallery') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-  
-  // BACKEND: Endpoint integration for Symptom Check 
-  // REMOVED the Alert.alert and directly calls onOpenCheck
-  const handleOpenCheck = () => {
-    // Directly navigate to the symptom check page
-    onOpenCheck();
-  };
-
 
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="dark-content" backgroundColor={SOFT_BG} />
 
+
       <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
+        {/* HEADER */}
         <View style={styles.headerContainer}>
           <View style={styles.headerLeft}>
             <TouchableOpacity
               style={styles.menuButton}
               onPress={() => setMenuOpen(!menuOpen)}
-              accessibilityLabel="Open menu"
             >
               <View style={styles.hamburgerWrap}>
                 <Text style={styles.menuIcon}>☰</Text>
               </View>
             </TouchableOpacity>
 
+
             <View style={styles.headerText}>
               <Text style={styles.greetingText}>Hi {userName}!</Text>
               <Text style={styles.subText}>How are you feeling today?</Text>
             </View>
           </View>
+
 
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.iconButton}>
@@ -195,34 +165,33 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
           </View>
         </View>
 
-        {/* Main content */}
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Symptom card */}
+
+        {/* MAIN */}
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* SYMPTOM CARD */}
           <View style={styles.symptomCard}>
             <View style={styles.symptomTopRow}>
               <View style={styles.emojiCircle}>
                 <Text style={styles.emojiBig}>🩺</Text>
               </View>
-
               <View style={styles.symptomRightText}>
                 <Text style={styles.symptomTitle}>Let's check the symptoms</Text>
-                <Text style={styles.symptomSubtitle}>Just Click To Enjoy Service</Text>
+                <Text style={styles.symptomSubtitle}>
+                  Just Click To Enjoy Service
+                </Text>
               </View>
             </View>
+
 
             <View style={styles.symptomBottomRow}>
               <TouchableOpacity
                 style={styles.clickButtonPrimary}
-                onPress={handleOpenCheck}
-                activeOpacity={0.9}
+                onPress={onOpenCheck}
               >
                 <Text style={styles.clickButtonPrimaryText}>Start Check</Text>
               </TouchableOpacity>
 
-              {/* Nurse emoji with typewriter click */}
+
               <TouchableOpacity
                 style={styles.smallEmojiWrap}
                 onPress={handleNurseClick}
@@ -231,65 +200,50 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
               </TouchableOpacity>
             </View>
 
-            {/* Typewriter message UI */}
+
             {typewriterText.length > 0 && (
-              <View
-                style={{
-                  marginTop: 14,
-                  padding: 12,
-                  backgroundColor: '#EAF8F0',
-                  borderRadius: 12,
-                }}
-              >
-                <Text
-                  style={{
-                    color: THEME_COLOR,
-                    fontWeight: '700',
-                    fontSize: 14,
-                    lineHeight: 20,
-                  }}
-                >
-                  {typewriterText}
-                </Text>
-              </View>
+              <Text style={{ color: '#fff', marginTop: 12, fontWeight: '700' }}>
+                {typewriterText}
+              </Text>
             )}
           </View>
 
-          {/* Services */}
+
+          {/* SERVICES */}
           <View style={styles.servicesSection}>
             <Text style={styles.sectionTitle}>Services</Text>
+
+
             <View style={styles.servicesGrid}>
-              {services.map(service => (
-                <TouchableOpacity
-                  key={service.id}
-                  style={styles.serviceCard}
-                  onPress={() => handleServicePress(service.id)}
-                  activeOpacity={0.85}
-                >
+              {[
+                { icon: '🧾', title: 'Health History' },
+                { icon: '👨‍👩‍👧', title: 'Add Family' },
+                { icon: '⏰', title: 'Reminders' },
+              ].map((item, index) => (
+                <TouchableOpacity key={index} style={styles.serviceCard}>
                   <View style={styles.serviceIconContainer}>
-                    <Text style={styles.serviceIcon}>{service.icon}</Text>
+                    <Text style={styles.serviceIcon}>{item.icon}</Text>
                   </View>
-                  <Text style={styles.serviceTitle}>{service.title}</Text>
+                  <Text style={styles.serviceTitle}>{item.title}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* Family List */}
+
+          {/* FAMILY */}
           <View style={styles.familySection}>
             <View style={styles.familyHeader}>
-              <Text style={styles.sectionTitle}>Family Member</Text>
-              <TouchableOpacity onPress={() => Alert.alert('See all family')}>
-                <Text style={styles.seeAllText}>See all</Text>
-              </TouchableOpacity>
+              <Text style={styles.sectionTitle}>Family Members</Text>
+              <Text style={styles.seeAllText}>See all</Text>
             </View>
 
-            {familyMembers.map(member => (
-              <TouchableOpacity
-                key={member.id}
-                style={styles.familyMemberCard}
-                onPress={() => Alert.alert(member.name)}
-              >
+
+            {[
+              { name: 'Father name', relation: 'Father', emoji: '👨' },
+              { name: 'Mother naame', relation: 'Mother', emoji: '👩' },
+            ].map((member, index) => (
+              <View key={index} style={styles.familyMemberCard}>
                 <View style={styles.familyAvatar}>
                   <Text style={styles.avatarEmoji}>{member.emoji}</Text>
                 </View>
@@ -297,97 +251,125 @@ const Landing = ({ userName, onLogout, onOpenCheck }: LandingProps) => {
                   <Text style={styles.familyName}>{member.name}</Text>
                   <Text style={styles.familyRelation}>{member.relation}</Text>
                 </View>
-              </TouchableOpacity>
+              </View>
             ))}
           </View>
-
-          <View style={{ height: 32 }} />
         </ScrollView>
 
-        {/* Drawer overlay */}
+
+        {/* OVERLAY */}
         <Animated.View
           pointerEvents={menuOpen ? 'auto' : 'none'}
           style={[styles.overlayContainer, { opacity: menuAnim }]}
         >
-          <Pressable style={styles.fullOverlay} onPress={() => setMenuOpen(false)}>
-            <Animated.View style={[styles.scrim, { opacity: overlayOpacity }]} />
+          <Pressable
+            style={styles.fullOverlay}
+            onPress={() => setMenuOpen(false)}
+          >
+            <Animated.View
+              style={[styles.scrim, { opacity: overlayOpacity }]}
+            />
           </Pressable>
         </Animated.View>
 
-        {/* Drawer */}
+
+        {/* DRAWER */}
         <Animated.View
           style={[
             styles.drawer,
-            {
-              width: menuWidth,
-              transform: [{ translateX }],
-            },
+            { width: menuWidth, transform: [{ translateX }] },
           ]}
         >
           <View style={styles.drawerInner}>
-            <View style={styles.drawerTopRow}>
-              <TouchableOpacity
-                style={styles.innerMenuBtn}
-                onPress={() => setMenuOpen(false)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.innerMenuBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              contentContainerStyle={styles.drawerScroll}
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView>
               <View style={styles.profileSection}>
-                <TouchableOpacity onPress={onChangePhoto} style={styles.profileCircle}>
-                  <Text style={styles.profileInitial}>{userName ? userName[0].toUpperCase() : 'U'}</Text>
+                <TouchableOpacity
+                  onPress={() => setPhotoModalVisible(true)}
+                  style={styles.profileCircle}
+                >
+                  <Text style={styles.profileInitial}>
+                    {userName[0].toUpperCase()}
+                  </Text>
                 </TouchableOpacity>
-
-                <View style={styles.profileText}>
+                <View>
                   <Text style={styles.profileName}>{userName}</Text>
                   <Text style={styles.profilePhone}>9840000000</Text>
                 </View>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setMenuOpen(false)}
+                >
+                  <Text style={styles.closeIcon}>✕</Text>
+                </TouchableOpacity>
               </View>
+
 
               <View style={styles.divider} />
 
-              <View style={styles.menuItems}>
-                <MenuItem icon="ℹ️" label="About me" onPress={() => Alert.alert('About me')} />
-                <MenuItem icon="✏️" label="Edit details" onPress={() => Alert.alert('Edit details')} />
-                <MenuItem icon="🔒" label="Change password" onPress={() => Alert.alert('Change password')} />
-                <MenuItem icon="👨‍👩‍👦" label="Add people" onPress={() => Alert.alert('Add people')} />
-                <MenuItem icon="📷" label="Change photo" onPress={onChangePhoto} />
-              </View>
 
-              <View style={{ height: 36 }} />
+              <MenuItem icon="ℹ️" label="About me" onPress={() => onOpenProfile('about')} />
+              <MenuItem icon="✏️" label="Edit details" onPress={() => onOpenProfile('edit')} />
+              <MenuItem icon="🔒" label="Change password" onPress={() => onOpenProfile('password')} />
             </ScrollView>
 
-            <View style={styles.drawerBottom}>
+
+            <TouchableOpacity style={styles.logoutRow} onPress={confirmLogout}>
+              <Text style={styles.logoutText}>Log out</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* Profile Photo Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={photoModalVisible}
+          onRequestClose={() => setPhotoModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Add Profile Photo</Text>
               <TouchableOpacity
-                style={styles.logoutRow}
+                style={styles.photoButton}
                 onPress={() => {
-                  setMenuOpen(false);
-                  confirmLogout();
+                  // Logic for selecting photo will go here
+                  setPhotoModalVisible(false);
                 }}
-                activeOpacity={0.85}
               >
-                <View style={styles.logoutIconWrap}>
-                  <Text style={styles.logoutIcon}>⤴️</Text>
-                </View>
-                <Text style={styles.logoutText}>Log out</Text>
+                <Text style={styles.photoButtonText}>Choose from Gallery</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.photoButton}
+                onPress={() => {
+                  // Logic for taking photo will go here
+                  setPhotoModalVisible(false);
+                }}
+              >
+                <Text style={styles.photoButtonText}>Take a Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeModalButton}
+                onPress={() => setPhotoModalVisible(false)}
+              >
+                <Text style={styles.closeModalButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </Animated.View>
+        </Modal>
       </SafeAreaView>
     </View>
   );
 };
 
+
+export default Landing;
+
+
+
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: SOFT_BG },
   safeArea: { flex: 1 },
+
 
   headerContainer: {
     flexDirection: 'row',
@@ -434,7 +416,9 @@ const styles = StyleSheet.create({
   },
   iconText: { fontSize: 18 },
 
+
   scrollContent: { paddingHorizontal: 18, paddingTop: 18 },
+
 
   symptomCard: {
     backgroundColor: THEME_COLOR,
@@ -472,6 +456,7 @@ const styles = StyleSheet.create({
   },
   symptomSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.92)' },
 
+
   symptomBottomRow: {
     flexDirection: 'row',
     marginTop: 12,
@@ -505,6 +490,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   smallEmoji: { fontSize: 22 },
+
 
   servicesSection: { marginBottom: 22 },
   sectionTitle: {
@@ -549,6 +535,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
+
 
   familySection: { marginBottom: 16 },
   familyHeader: {
@@ -596,6 +583,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+
   overlayContainer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
@@ -624,22 +612,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 18,
     overflow: 'hidden',
   },
-  drawerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
-  innerMenuBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: SOFT_BG,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  innerMenuBtnText: { fontSize: 20, color: TEXT_COLOR },
-  drawerScroll: { paddingBottom: 10 },
   profileSection: { flexDirection: 'row', alignItems: 'center', paddingBottom: 8 },
   profileCircle: {
     width: 92,
@@ -658,6 +630,22 @@ const styles = StyleSheet.create({
   profileText: { flex: 1 },
   profileName: { fontSize: 18, fontWeight: '900', color: TEXT_COLOR },
   profilePhone: { fontSize: 12, color: '#8FBBA1', marginTop: 6 },
+  closeButton: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  closeIcon: { fontSize: 20, fontWeight: 'bold', color: TEXT_COLOR },
   divider: { height: 1, backgroundColor: LIGHT_GRAY, marginVertical: 16 },
   menuItems: { flex: 1 },
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6 },
@@ -677,20 +665,61 @@ const styles = StyleSheet.create({
   menuItemIcon: { fontSize: 18 },
   menuItemLabel: { fontSize: 15, color: TEXT_COLOR, fontWeight: '800' },
   drawerBottom: { paddingVertical: 12, borderTopWidth: 1, borderTopColor: LIGHT_GRAY },
-  logoutRow: { flexDirection: 'row', alignItems: 'center' },
-  logoutIconWrap: {
-    width: 44,
-    height: 44,
+  logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2FA678',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     borderRadius: 12,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E6E6E6',
+    marginHorizontal: 18,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  logoutText: { fontSize: 15, color: '#fff', fontWeight: '900', textAlign: 'center', flex: 1 },
+  modalOverlay: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  logoutIcon: { fontSize: 18 },
-  logoutText: { fontSize: 15, color: TEXT_COLOR, fontWeight: '900' },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: TEXT_COLOR,
+    marginBottom: 16,
+  },
+  photoButton: {
+    width: '100%',
+    paddingVertical: 12,
+    backgroundColor: '#2FA678',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  photoButtonText: {
+    color: '#fff',
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  closeModalButton: {
+    width: '100%',
+    paddingVertical: 12,
+    backgroundColor: '#ccc',
+    borderRadius: 8,
+  },
+  closeModalButtonText: {
+    color: '#333',
+    fontWeight: '800',
+    textAlign: 'center',
+  },
 });
-
-export default Landing;

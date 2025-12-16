@@ -1,4 +1,4 @@
-// App.tsx
+
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -14,6 +14,7 @@ import LoginScreen from './Login';
 import SignUpScreen from './Signup';
 import Landing from './Landing';
 import Check from './Check';
+import NewBar from './NewBar';
 import Svg, { Path, Circle } from 'react-native-svg';
 
 const { height } = Dimensions.get('window');
@@ -24,6 +25,12 @@ const COLORS = {
   white: '#FFFFFF',
   greyText: '#aab4be',
 };
+
+// profile modes
+type NewBarMode = 'about' | 'edit' | 'password';
+
+// add 'check' and 'profile' here
+type ScreenType = 'welcome' | 'login' | 'signup' | 'landing' | 'check' | 'profile';
 
 const HeartLogo = () => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -70,12 +77,10 @@ const HeartLogo = () => {
   );
 };
 
-// add 'check' here
-type ScreenType = 'welcome' | 'login' | 'signup' | 'landing' | 'check';
-
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('welcome');
   const [userName, setUserName] = useState<string>('User');
+  const [profileMode, setProfileMode] = useState<NewBarMode>('about'); // <‑‑ NEW
 
   const slideAnim = useRef(new Animated.Value(height * 0.5)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -129,6 +134,10 @@ const App = () => {
         userName={userName}
         onLogout={() => setCurrentScreen('login')}
         onOpenCheck={() => setCurrentScreen('check')}
+        onOpenProfile={(mode: NewBarMode) => {
+          setProfileMode(mode);           // remember which mode to show
+          setCurrentScreen('profile');    // go to profile screen
+        }}
       />
     );
   }
@@ -136,6 +145,16 @@ const App = () => {
   // CHECK SCREEN (intro + chat)
   if (currentScreen === 'check') {
     return <Check onBackToLanding={() => setCurrentScreen('landing')} />;
+  }
+
+  // PROFILE SCREEN (NewBar)
+  if (currentScreen === 'profile') {
+    return (
+      <NewBar
+        mode={profileMode}                // use stored mode
+        onBack={() => setCurrentScreen('landing')}
+      />
+    );
   }
 
   // WELCOME SCREEN
