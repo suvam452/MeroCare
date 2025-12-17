@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -16,6 +15,8 @@ import Landing from './Landing';
 import Check from './Check';
 import NewBar from './NewBar';
 import Svg, { Path, Circle } from 'react-native-svg';
+import AddFamily from './AddFamily';
+import Notification from './Notification'; // keeping my people always informed 💌
 
 const { height } = Dimensions.get('window');
 
@@ -26,15 +27,24 @@ const COLORS = {
   greyText: '#aab4be',
 };
 
-// profile modes
+// profile modes for NewBar – one place to control all profile views
 type NewBarMode = 'about' | 'edit' | 'password';
 
-// add 'check' and 'profile' here
-type ScreenType = 'welcome' | 'login' | 'signup' | 'landing' | 'check' | 'profile';
+// app routes – small map of my MeroCare world
+type ScreenType =
+  | 'welcome'
+  | 'login'
+  | 'signup'
+  | 'landing'
+  | 'check'
+  | 'profile'
+  | 'addFamily'
+  | 'notification';
 
 const HeartLogo = () => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  // gentle pulse animation – MeroCare heart beating for every patient
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
@@ -58,6 +68,7 @@ const HeartLogo = () => {
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <Svg width="140" height="140" viewBox="0 0 100 100">
+        {/* clean heart + ECG line – simple visual for “health with motion” */}
         <Path
           d="M50 88 C48.7 87.3 10 64.5 10 35 C10 21.2 20.6 10.3 33.3 10.3 C40.5 10.3 46.8 13.7 50 19.3 C53.2 13.7 59.5 10.3 66.7 10.3 C79.4 10.3 90 21.2 90 35 C90 64.5 51.3 87.3 50 88 Z"
           fill={COLORS.white}
@@ -78,13 +89,16 @@ const HeartLogo = () => {
 };
 
 const App = () => {
+  // simple hand‑rolled navigation – no React Navigation, just state and love
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('welcome');
   const [userName, setUserName] = useState<string>('User');
-  const [profileMode, setProfileMode] = useState<NewBarMode>('about'); // <‑‑ NEW
+  const [profileMode, setProfileMode] = useState<NewBarMode>('about');
 
+  // welcome card animations
   const slideAnim = useRef(new Animated.Value(height * 0.5)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  // first impression matters – smooth welcome animation for the user
   useEffect(() => {
     if (currentScreen === 'welcome') {
       Animated.parallel([
@@ -103,13 +117,14 @@ const App = () => {
     }
   }, [slideAnim, fadeAnim, currentScreen]);
 
-  // LOGIN SCREEN
+  // LOGIN SCREEN – returns full screen; rest of the app waits behind
   if (currentScreen === 'login') {
     return (
       <LoginScreen
         onBack={() => setCurrentScreen('welcome')}
         onSignUpClick={() => setCurrentScreen('signup')}
         onLoginSuccess={name => {
+          // greeting user by name to keep experience a bit more human
           setUserName(name || 'User');
           setCurrentScreen('landing');
         }}
@@ -117,7 +132,7 @@ const App = () => {
     );
   }
 
-  // SIGNUP SCREEN
+  // SIGNUP SCREEN – new member joins the MeroCare family
   if (currentScreen === 'signup') {
     return (
       <SignUpScreen
@@ -127,7 +142,7 @@ const App = () => {
     );
   }
 
-  // LANDING SCREEN
+  // LANDING SCREEN – central hub after auth
   if (currentScreen === 'landing') {
     return (
       <Landing
@@ -135,29 +150,42 @@ const App = () => {
         onLogout={() => setCurrentScreen('login')}
         onOpenCheck={() => setCurrentScreen('check')}
         onOpenProfile={(mode: NewBarMode) => {
-          setProfileMode(mode);           // remember which mode to show
-          setCurrentScreen('profile');    // go to profile screen
+          // remember which profile tab user wanted before opening NewBar
+          setProfileMode(mode);
+          setCurrentScreen('profile');
         }}
+        onOpenAddFamily={() => setCurrentScreen('addFamily')}
+        onOpenNotification={() => setCurrentScreen('notification')}
       />
     );
   }
 
-  // CHECK SCREEN (intro + chat)
+  // CHECK SCREEN – space for quick health check & chat
   if (currentScreen === 'check') {
     return <Check onBackToLanding={() => setCurrentScreen('landing')} />;
   }
 
-  // PROFILE SCREEN (NewBar)
+  // PROFILE SCREEN – NewBar handles all profile modes in one place
   if (currentScreen === 'profile') {
     return (
       <NewBar
-        mode={profileMode}                // use stored mode
+        mode={profileMode}
         onBack={() => setCurrentScreen('landing')}
       />
     );
   }
 
-  // WELCOME SCREEN
+  // ADD FAMILY – because health is not just individual, it’s family too
+  if (currentScreen === 'addFamily') {
+    return <AddFamily onBack={() => setCurrentScreen('landing')} />;
+  }
+
+  // NOTIFICATION – keeping user updated about care journey
+  if (currentScreen === 'notification') {
+    return <Notification onBack={() => setCurrentScreen('landing')} />;
+  }
+
+  // WELCOME SCREEN – calm first touch of MeroCare
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryTeal} />
@@ -176,9 +204,11 @@ const App = () => {
           ]}
         >
           <View style={styles.contentContainer}>
+            {/* main brand mark – keeping it clean and memorable */}
             <Text style={styles.title}>Mero-Care</Text>
             <Text style={styles.tagline}>"Your Heath Our Care"</Text>
 
+            {/* primary action – send user straight into login flow */}
             <TouchableOpacity
               style={styles.loginButton}
               activeOpacity={0.8}
@@ -187,6 +217,7 @@ const App = () => {
               <Text style={styles.loginButtonText}>LOGIN</Text>
             </TouchableOpacity>
 
+            {/* gentle nudge for new users to sign up */}
             <View style={styles.signupRow}>
               <Text style={styles.signupText}>Don't have an account? </Text>
               <TouchableOpacity
