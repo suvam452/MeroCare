@@ -16,9 +16,7 @@ import {
   Image,
 } from 'react-native';
 
-
 const { width } = Dimensions.get('window');
-
 
 const THEME_COLOR = '#255E67';
 const TEXT_COLOR = '#133D2E';
@@ -26,37 +24,40 @@ const ACCENT_COLOR = '#2FA678';
 const LIGHT_GRAY = '#F2F7F5';
 const SOFT_BG = '#FAFFFB';
 
-
+// profile modes shared with NewBar
 type NewBarMode = 'about' | 'edit' | 'password';
-
 
 interface LandingProps {
   userName: string;
   onLogout: () => void;
   onOpenCheck: () => void;
   onOpenProfile: (mode: NewBarMode) => void;
+  onOpenAddFamily: () => void;
+  onOpenNotification: () => void; // bell → notification screen
 }
-
 
 const Landing = ({
   userName,
   onLogout,
   onOpenCheck,
   onOpenProfile,
+  onOpenAddFamily,
+  onOpenNotification,
 }: LandingProps) => {
+  // local UI state for this home screen only
   const [menuOpen, setMenuOpen] = useState(false);
   const [typewriterText, setTypewriterText] = useState('');
   const [typing, setTyping] = useState(false);
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
 
+  // friendly intro line from “Mero Care” nurse bot
   const fullMessage = 'Hi, I am Mero Care, caring for you everyday 😊';
 
-
+  // nurse avatar click → typewriter effect
   const handleNurseClick = () => {
     if (typing) return;
     setTypewriterText('');
     setTyping(true);
-
 
     let index = 0;
     const interval = setInterval(() => {
@@ -64,16 +65,15 @@ const Landing = ({
         clearInterval(interval);
         setTyping(false);
         return;
-      }
+        }
       setTypewriterText(fullMessage.substring(0, index));
       index++;
     }, 40);
   };
 
-
+  // simple custom drawer animation (no React Navigation drawer)
   const menuAnim = useRef(new Animated.Value(0)).current;
   const menuWidth = Math.min(360, Math.round(width * 0.82));
-
 
   useEffect(() => {
     Animated.timing(menuAnim, {
@@ -84,7 +84,7 @@ const Landing = ({
     }).start();
   }, [menuOpen]);
 
-
+  // confirm before logging the user out
   const confirmLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel' },
@@ -92,19 +92,19 @@ const Landing = ({
     ]);
   };
 
-
+  // animate side drawer sliding in from left
   const translateX = menuAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [-menuWidth - 10, 0],
   });
 
-
+  // dim background when menu is open
   const overlayOpacity = menuAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.5],
   });
 
-
+  // small helper for drawer menu items
   const MenuItem = ({
     icon,
     label,
@@ -128,14 +128,12 @@ const Landing = ({
     </TouchableOpacity>
   );
 
-
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="dark-content" backgroundColor={SOFT_BG} />
 
-
       <SafeAreaView style={styles.safeArea}>
-        {/* HEADER */}
+        {/* HEADER – greeting + quick actions (bell + logout) */}
         <View style={styles.headerContainer}>
           <View style={styles.headerLeft}>
             <TouchableOpacity
@@ -147,28 +145,30 @@ const Landing = ({
               </View>
             </TouchableOpacity>
 
-
             <View style={styles.headerText}>
               <Text style={styles.greetingText}>Hi {userName}!</Text>
               <Text style={styles.subText}>How are you feeling today?</Text>
             </View>
           </View>
 
-
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.iconButton}>
+            {/* notification bell opens dedicated notification screen */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onOpenNotification}
+            >
               <Text style={styles.iconText}>🔔</Text>
             </TouchableOpacity>
+            {/* quick logout from top-right */}
             <TouchableOpacity style={styles.iconButton} onPress={confirmLogout}>
               <Text style={styles.iconText}>🚪</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-
-        {/* MAIN */}
+        {/* MAIN CONTENT */}
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* SYMPTOM CARD */}
+          {/* SYMPTOM CHECK CARD – primary CTA of the app */}
           <View style={styles.symptomCard}>
             <View style={styles.symptomTopRow}>
               <View style={styles.emojiCircle}>
@@ -182,7 +182,6 @@ const Landing = ({
               </View>
             </View>
 
-
             <View style={styles.symptomBottomRow}>
               <TouchableOpacity
                 style={styles.clickButtonPrimary}
@@ -191,7 +190,7 @@ const Landing = ({
                 <Text style={styles.clickButtonPrimaryText}>Start Check</Text>
               </TouchableOpacity>
 
-
+              {/* nurse icon triggers typewriter helper message */}
               <TouchableOpacity
                 style={styles.smallEmojiWrap}
                 onPress={handleNurseClick}
@@ -200,7 +199,6 @@ const Landing = ({
               </TouchableOpacity>
             </View>
 
-
             {typewriterText.length > 0 && (
               <Text style={{ color: '#fff', marginTop: 12, fontWeight: '700' }}>
                 {typewriterText}
@@ -208,19 +206,25 @@ const Landing = ({
             )}
           </View>
 
-
-          {/* SERVICES */}
+          {/* SERVICES – small grid of key features */}
           <View style={styles.servicesSection}>
             <Text style={styles.sectionTitle}>Services</Text>
-
 
             <View style={styles.servicesGrid}>
               {[
                 { icon: '🧾', title: 'Health History' },
-                { icon: '👨‍👩‍👧', title: 'Add Family' },
-                { icon: '⏰', title: 'Reminders' },
+                {
+                  icon: '👨‍👩‍👧',
+                  title: 'Add Family',
+                  onPress: onOpenAddFamily,
+                },
+                { icon: '⏰', title: 'Reminders' }, // future feature slot
               ].map((item, index) => (
-                <TouchableOpacity key={index} style={styles.serviceCard}>
+                <TouchableOpacity
+                  key={index}
+                  style={styles.serviceCard}
+                  onPress={item.onPress}
+                >
                   <View style={styles.serviceIconContainer}>
                     <Text style={styles.serviceIcon}>{item.icon}</Text>
                   </View>
@@ -230,14 +234,12 @@ const Landing = ({
             </View>
           </View>
 
-
-          {/* FAMILY */}
+          {/* FAMILY – will later be filled from backend list */}
           <View style={styles.familySection}>
             <View style={styles.familyHeader}>
               <Text style={styles.sectionTitle}>Family Members</Text>
               <Text style={styles.seeAllText}>See all</Text>
             </View>
-
 
             {[
               { name: 'Father name', relation: 'Father', emoji: '👨' },
@@ -256,8 +258,7 @@ const Landing = ({
           </View>
         </ScrollView>
 
-
-        {/* OVERLAY */}
+        {/* OVERLAY – catches taps outside the drawer to close it */}
         <Animated.View
           pointerEvents={menuOpen ? 'auto' : 'none'}
           style={[styles.overlayContainer, { opacity: menuAnim }]}
@@ -272,8 +273,7 @@ const Landing = ({
           </Pressable>
         </Animated.View>
 
-
-        {/* DRAWER */}
+        {/* CUSTOM SIDE DRAWER – simple user panel */}
         <Animated.View
           style={[
             styles.drawer,
@@ -282,6 +282,7 @@ const Landing = ({
         >
           <View style={styles.drawerInner}>
             <ScrollView>
+              {/* top profile section – initials as avatar, tap to add photo */}
               <View style={styles.profileSection}>
                 <TouchableOpacity
                   onPress={() => setPhotoModalVisible(true)}
@@ -303,23 +304,22 @@ const Landing = ({
                 </TouchableOpacity>
               </View>
 
-
               <View style={styles.divider} />
 
-
+              {/* profile related routes controlled by NewBar */}
               <MenuItem icon="ℹ️" label="About me" onPress={() => onOpenProfile('about')} />
               <MenuItem icon="✏️" label="Edit details" onPress={() => onOpenProfile('edit')} />
               <MenuItem icon="🔒" label="Change password" onPress={() => onOpenProfile('password')} />
             </ScrollView>
 
-
+            {/* bottom logout action inside drawer */}
             <TouchableOpacity style={styles.logoutRow} onPress={confirmLogout}>
               <Text style={styles.logoutText}>Log out</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
 
-        {/* Profile Photo Modal */}
+        {/* Profile Photo Modal – reserved spot for image picker integration */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -332,7 +332,7 @@ const Landing = ({
               <TouchableOpacity
                 style={styles.photoButton}
                 onPress={() => {
-                  // Logic for selecting photo will go here
+                  // TO-DO: connect image picker (gallery) here
                   setPhotoModalVisible(false);
                 }}
               >
@@ -341,7 +341,7 @@ const Landing = ({
               <TouchableOpacity
                 style={styles.photoButton}
                 onPress={() => {
-                  // Logic for taking photo will go here
+                  // TO-DO: connect camera capture here
                   setPhotoModalVisible(false);
                 }}
               >
@@ -361,15 +361,13 @@ const Landing = ({
   );
 };
 
-
 export default Landing;
 
-
+// ================= STYLES – soft dashboard look to keep things calm =================
 
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: SOFT_BG },
   safeArea: { flex: 1 },
-
 
   headerContainer: {
     flexDirection: 'row',
@@ -416,9 +414,7 @@ const styles = StyleSheet.create({
   },
   iconText: { fontSize: 18 },
 
-
   scrollContent: { paddingHorizontal: 18, paddingTop: 18 },
-
 
   symptomCard: {
     backgroundColor: THEME_COLOR,
@@ -456,7 +452,6 @@ const styles = StyleSheet.create({
   },
   symptomSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.92)' },
 
-
   symptomBottomRow: {
     flexDirection: 'row',
     marginTop: 12,
@@ -490,7 +485,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   smallEmoji: { fontSize: 22 },
-
 
   servicesSection: { marginBottom: 22 },
   sectionTitle: {
@@ -535,7 +529,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
-
 
   familySection: { marginBottom: 16 },
   familyHeader: {
@@ -582,7 +575,6 @@ const styles = StyleSheet.create({
     color: ACCENT_COLOR,
     fontWeight: '700',
   },
-
 
   overlayContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -648,7 +640,12 @@ const styles = StyleSheet.create({
   closeIcon: { fontSize: 20, fontWeight: 'bold', color: TEXT_COLOR },
   divider: { height: 1, backgroundColor: LIGHT_GRAY, marginVertical: 16 },
   menuItems: { flex: 1 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6 },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+  },
   menuItemIconWrap: {
     width: 46,
     height: 46,
@@ -679,7 +676,13 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  logoutText: { fontSize: 15, color: '#fff', fontWeight: '900', textAlign: 'center', flex: 1 },
+  logoutText: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '900',
+    textAlign: 'center',
+    flex: 1,
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
