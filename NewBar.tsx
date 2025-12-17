@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 
+// three modes controlled from Landing drawer
 type Mode = 'about' | 'edit' | 'password';
 
 interface NewBarProps {
@@ -18,27 +19,31 @@ interface NewBarProps {
   onBack: () => void;
 }
 
+// keeping validations simple and strict for first release
 const emailRegex = /^[\w.+-]+@gmail\.com$/i;
 const phoneRegex = /^[0-9]{10}$/;
 const bloodGroupRegex = /^(A|B|AB|O)[+-]$/i;
 
 const NewBar = ({ mode, onBack }: NewBarProps) => {
+  // local profile state – in real app this should come from backend/user store
   const [name, setName] = useState('User');
   const [email, setEmail] = useState('user@gmail.com');
   const [phone, setPhone] = useState('9840000000');
   const [bloodGroup, setBloodGroup] = useState('O+');
   const [address, setAddress] = useState('Kathmandu, Nepal');
 
-  // Birth of Date
+  // Birth of Date – string for now, can be wired to date picker later
   const [birthOfDate, setBirthOfDate] = useState('2000-01-01');
 
-  // change photo modal (only UI, no backend)
+  // change photo modal (only UI, no backend yet)
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
 
+  // password change fields – only used when mode === 'password'
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // shared error bag for all three views
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -51,6 +56,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
     confirmPassword?: string;
   }>({});
 
+  // validate basic profile fields before sending update to backend
   const validateProfile = () => {
     const newErrors: typeof errors = {};
 
@@ -77,6 +83,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // validate password change before calling real change-password API
   const validatePassword = () => {
     const newErrors: typeof errors = {};
 
@@ -92,21 +99,57 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // profile save hook – ready for backend integration
   const handleSaveProfile = () => {
     if (!validateProfile()) return;
+
+    /**
+     * BACKEND INTEGRATION – UPDATE PROFILE
+     *
+     * API: PUT /user/profile
+     * Body:
+     * {
+     *   name,
+     *   email,
+     *   phone,
+     *   bloodGroup,
+     *   address,
+     *   birthOfDate,
+     * }
+     *
+     * On success:
+     * - show success message
+     * - update global user state if you are using context/store
+     */
     Alert.alert('Success', 'Profile updated successfully');
     onBack();
   };
 
+  // password change hook – ready for backend integration
   const handleChangePassword = () => {
     if (!validatePassword()) return;
+
+    /**
+     * BACKEND INTEGRATION – CHANGE PASSWORD
+     *
+     * API: POST /user/change-password
+     * Body:
+     * {
+     *   oldPassword,
+     *   newPassword,
+     * }
+     *
+     * On success:
+     * - clear local password fields
+     * - maybe force re-login depending on security policy
+     */
     Alert.alert('Success', 'Password changed successfully');
     onBack();
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER */}
+      {/* HEADER – title depends on mode from Landing drawer */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}>
           <Text style={styles.backText}>← Back</Text>
@@ -125,7 +168,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* TOP PROFILE CARD */}
+        {/* TOP PROFILE CARD – shared for about/edit modes */}
         {(mode === 'about' || mode === 'edit') && (
           <View style={styles.topCard}>
             {mode === 'edit' ? (
@@ -163,7 +206,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
           </View>
         )}
 
-        {/* ABOUT VIEW */}
+        {/* ABOUT VIEW – read-only summary of current user data */}
         {mode === 'about' && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Personal Info</Text>
@@ -200,7 +243,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
           </View>
         )}
 
-        {/* EDIT VIEW */}
+        {/* EDIT VIEW – allows changing local profile values */}
         {mode === 'edit' && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Edit Info</Text>
@@ -302,7 +345,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
           </View>
         )}
 
-        {/* PASSWORD VIEW */}
+        {/* PASSWORD VIEW – pure client-side validation for now */}
         {mode === 'password' && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Security</Text>
@@ -365,7 +408,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
         )}
       </ScrollView>
 
-      {/* Change photo modal (only UI) */}
+      {/* Change photo modal (only UI) – backend will later plug in gallery/camera */}
       <Modal
         visible={photoModalVisible}
         transparent
@@ -379,7 +422,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
             <TouchableOpacity
               style={styles.modalButton}
               onPress={() => {
-                // TODO: integrate gallery picker
+                // TODO: integrate gallery picker (image picker lib) here
                 setPhotoModalVisible(false);
               }}
             >
@@ -389,7 +432,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
             <TouchableOpacity
               style={styles.modalButton}
               onPress={() => {
-                // TODO: integrate camera
+                // TODO: integrate camera capture here
                 setPhotoModalVisible(false);
               }}
             >

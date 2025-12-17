@@ -30,6 +30,7 @@ interface InputFieldProps {
   error?: string;
 }
 
+// small reusable field with icon + error state + password toggle
 const InputField = ({
   icon,
   placeholder,
@@ -88,7 +89,12 @@ interface SignUpScreenProps {
   onSignUpSuccess?: () => void;
 }
 
+// stronger email regex shared for signup (same pattern as login)
+const emailRegexStrong =
+  /^[a-zA-Z0-9][a-zA-Z0-9._%+-]*@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[A-Za-z]{2,10}$/;
+
 const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
+  // all signup form fields live in one object
   const [formData, setFormData] = useState({
     fullName: '',
     mobileNumber: '',
@@ -110,6 +116,7 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
     setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
+  // frontend validation before hitting real signup API
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof typeof formData, string>> = {};
 
@@ -121,10 +128,9 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
       newErrors.mobileNumber = 'Mobile number must be at least 10 digits';
     }
 
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!formData.email.trim()) {
       newErrors.email = 'Please enter your email address';
-    } else if (!emailRegex.test(formData.email)) {
+    } else if (!emailRegexStrong.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
 
@@ -159,11 +165,30 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // signup handler – currently mocked, ready for backend plug-in
   const handleSignUp = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
     try {
+      /**
+       * BACKEND INTEGRATION – SIGNUP
+       *
+       * API: POST /auth/signup
+       * Body:
+       * {
+       *   fullName,
+       *   mobileNumber,
+       *   email,
+       *   dateOfBirth,
+       *   address,
+       *   bloodGroup,
+       *   password,
+       * }
+       *
+       * On success:
+       * - navigate to login or auto-login
+       */
       await new Promise<void>(resolve => setTimeout(resolve, 1500));
 
       Alert.alert('Success! 🎉', 'Account created successfully!', [
@@ -195,8 +220,9 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
       <StatusBar barStyle="light-content" backgroundColor={THEME_COLOR} />
 
       <SafeAreaView style={styles.safeArea}>
+        {/* TOP BAR – back + title for signup flow */}
         <View style={styles.topBar}>
-          <TouchableOpacity style={styles.backCircle} onPress={onBack}>
+          <TouchableOpacity style={styles.backCircle} onPress={onBack} disabled={loading}>
             <Text style={styles.backArrow}>‹</Text>
           </TouchableOpacity>
 
@@ -206,21 +232,90 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
           </View>
         </View>
 
-        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* MAIN FORM AREA */}
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <ScrollView contentContainerStyle={styles.scrollContent}>
+            {/* card wrapper for all inputs */}
             <View style={styles.card}>
-              <InputField icon="👤" placeholder="Full Name" value={formData.fullName} onChangeText={t => updateField('fullName', t)} error={errors.fullName} />
-              <InputField icon="📱" placeholder="Mobile Number" keyboardType="phone-pad" value={formData.mobileNumber} onChangeText={t => updateField('mobileNumber', t.replace(/[^0-9]/g, ''))} error={errors.mobileNumber} />
-              <InputField icon="✉️" placeholder="Email" keyboardType="email-address" value={formData.email} onChangeText={t => updateField('email', t)} error={errors.email} />
-              <InputField icon="🎂" placeholder="Date of Birth (YYYY-MM-DD)" value={formData.dateOfBirth} onChangeText={t => updateField('dateOfBirth', t)} error={errors.dateOfBirth} />
-              <InputField icon="📍" placeholder="Address" value={formData.address} onChangeText={t => updateField('address', t)} error={errors.address} />
-              <InputField icon="🩸" placeholder="Blood Group (O+, AB-, etc)" value={formData.bloodGroup} onChangeText={t => updateField('bloodGroup', t.toUpperCase())} error={errors.bloodGroup} />
-              <InputField icon="🔐" placeholder="Password" isPassword value={formData.password} onChangeText={t => updateField('password', t)} error={errors.password} />
-              <InputField icon="🔐" placeholder="Confirm Password" isPassword value={formData.conformPassword} onChangeText={t => updateField('conformPassword', t)} error={errors.conformPassword} />
+              <InputField
+                icon="👤"
+                placeholder="Full Name"
+                value={formData.fullName}
+                onChangeText={t => updateField('fullName', t)}
+                error={errors.fullName}
+              />
+              <InputField
+                icon="📱"
+                placeholder="Mobile Number"
+                keyboardType="phone-pad"
+                value={formData.mobileNumber}
+                onChangeText={t =>
+                  updateField('mobileNumber', t.replace(/[^0-9]/g, ''))
+                }
+                error={errors.mobileNumber}
+              />
+              <InputField
+                icon="✉️"
+                placeholder="Email"
+                keyboardType="email-address"
+                value={formData.email}
+                onChangeText={t => updateField('email', t)}
+                error={errors.email}
+              />
+              <InputField
+                icon="🎂"
+                placeholder="Date of Birth (YYYY-MM-DD)"
+                value={formData.dateOfBirth}
+                onChangeText={t => updateField('dateOfBirth', t)}
+                error={errors.dateOfBirth}
+              />
+              <InputField
+                icon="📍"
+                placeholder="Address"
+                value={formData.address}
+                onChangeText={t => updateField('address', t)}
+                error={errors.address}
+              />
+              <InputField
+                icon="🩸"
+                placeholder="Blood Group (O+, AB-, etc)"
+                value={formData.bloodGroup}
+                onChangeText={t => updateField('bloodGroup', t.toUpperCase())}
+                error={errors.bloodGroup}
+              />
+              <InputField
+                icon="🔐"
+                placeholder="Password"
+                isPassword
+                value={formData.password}
+                onChangeText={t => updateField('password', t)}
+                error={errors.password}
+              />
+              <InputField
+                icon="🔐"
+                placeholder="Confirm Password"
+                isPassword
+                value={formData.conformPassword}
+                onChangeText={t => updateField('conformPassword', t)}
+                error={errors.conformPassword}
+              />
             </View>
 
-            <TouchableOpacity style={styles.signupButton} onPress={handleSignUp}>
-              <Text style={styles.signupButtonText}>Sign UP</Text>
+            {/* main signup button – disabled visual is handled by loading state if needed */}
+            <TouchableOpacity
+              style={[
+                styles.signupButton,
+                loading && styles.signupButtonDisabled,
+              ]}
+              onPress={handleSignUp}
+              disabled={loading}
+            >
+              <Text style={styles.signupButtonText}>
+                {loading ? 'Creating account...' : 'Sign UP'}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -228,8 +323,6 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
     </View>
   );
 };
-
-
 
 const styles = StyleSheet.create({
   mainContainer: {
