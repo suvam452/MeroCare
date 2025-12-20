@@ -2,8 +2,10 @@ from fastapi import FastAPI
 from .database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import authentication,users,diagnosis
+from . import models
 
 Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="MeroCare",
               version="1.0.0")
