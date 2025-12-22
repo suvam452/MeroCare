@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 
+
 const THEME_COLOR = '#255E67';
 const ACCENT_COLOR = '#2FA678';
 const TEXT_COLOR = '#133D2E';
@@ -18,7 +19,16 @@ const PENDING_COLOR = '#FFB020';
 const REJECT_COLOR = '#F25D5D';
 const ACCEPT_COLOR = '#2FA678';
 
+
 type RequestStatus = 'pending' | 'accepted' | 'rejected';
+
+type ReminderNotification = {
+  id: string;
+  title: string;      // e.g. "Morning BP Medicine"
+  timeText: string;   // e.g. "Today • 08:00 AM"
+  statusLabel: string; // e.g. "Upcoming", "Missed"
+};
+
 
 interface IncomingRequest {
   id: string;
@@ -29,6 +39,7 @@ interface IncomingRequest {
   timeAgo: string;
 }
 
+
 interface SentRequest {
   id: string;
   name: string;
@@ -38,14 +49,32 @@ interface SentRequest {
   timeAgo: string;
 }
 
+
 interface NotificationProps {
   onBack: () => void;
   // callback to tell parent to update Landing's family list
   onAcceptFamily: (payload: { id: string; name: string; relation: string }) => void;
 }
 
+
 // Notification center for family connection requests
 const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
+  // dummy reminder alerts – backend: replace with GET /reminders/notifications
+  const [reminderAlerts] = useState<ReminderNotification[]>([
+    {
+      id: 'r1',
+      title: 'Morning BP Medicine',
+      timeText: 'Today • 08:00 AM',
+      statusLabel: 'Upcoming',
+    },
+    {
+      id: 'r2',
+      title: 'Vitamin D Capsule',
+      timeText: 'Tomorrow • 09:00 AM',
+      statusLabel: 'Scheduled',
+    },
+  ]);
+
   // dummy incoming data – will be replaced with API response later
   const [incomingRequests, setIncomingRequests] = useState<IncomingRequest[]>([
     {
@@ -66,6 +95,7 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
     },
     // you can add more here: Spouse, Brother, Sister, Son, Daughter, Guardian, ...
   ]);
+
 
   // dummy sent data – one place to later show what user has invited
   const [sentRequests, setSentRequests] = useState<SentRequest[]>([
@@ -95,6 +125,7 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
     },
   ]);
 
+
   // Accept handler – backend will mark request as accepted and link family
   const handleAccept = (id: string) => {
     /**
@@ -106,10 +137,12 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
      * - refresh family list on Landing (or global state)
      */
 
+
     const req = incomingRequests.find(r => r.id === id);
     if (!req) {
       return;
     }
+
 
     // notify parent so it adds this member to Landing's family list
     onAcceptFamily({
@@ -118,12 +151,14 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
       relation: req.relation,
     });
 
+
     setIncomingRequests(prev => prev.filter(item => item.id !== id));
     Alert.alert(
       'Request Accepted',
       'This family member will be added to your account.',
     );
   };
+
 
   // Reject handler – backend only updates request status
   const handleReject = (id: string) => {
@@ -138,10 +173,12 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
     Alert.alert('Request Rejected', 'This request has been removed.');
   };
 
+
   // small helper for visual badge of sent request status
   const renderStatusBadge = (status: RequestStatus) => {
     let bg = PENDING_COLOR;
     let label = 'Pending';
+
 
     if (status === 'accepted') {
       bg = ACCEPT_COLOR;
@@ -151,12 +188,14 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
       label = 'Rejected';
     }
 
+
     return (
       <View style={[styles.statusBadge, { backgroundColor: bg }]}>
         <Text style={styles.statusText}>{label}</Text>
       </View>
     );
   };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -169,9 +208,36 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
         <View style={{ width: 32 }} />
       </View>
 
+
       <ScrollView contentContainerStyle={styles.container}>
+        {/* SECTION: Reminder alerts – backend: GET /reminders/notifications */}
+        <Text style={styles.sectionTitle}>Reminder alerts</Text>
+        {reminderAlerts.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>No reminder alerts</Text>
+            <Text style={styles.emptySubtitle}>
+              When a reminder time is near or missed, it will appear here.
+            </Text>
+          </View>
+        ) : (
+          reminderAlerts.map(item => (
+            <View key={item.id} style={styles.reminderCard}>
+              <View style={styles.reminderLeft}>
+                <Text style={styles.reminderTitle}>{item.title}</Text>
+                <Text style={styles.reminderTime}>{item.timeText}</Text>
+              </View>
+              <View style={styles.reminderRight}>
+                <Text style={styles.reminderStatus}>{item.statusLabel}</Text>
+              </View>
+            </View>
+          ))
+        )}
+
+
         {/* SECTION: Incoming Requests – invitations where current user is receiver */}
-        <Text style={styles.sectionTitle}>Incoming Requests</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
+          Incoming Requests
+        </Text>
         {incomingRequests.length === 0 ? (
           <View style={styles.emptyBox}>
             <Text style={styles.emptyTitle}>No new requests</Text>
@@ -190,6 +256,7 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
                 </View>
               </View>
 
+
               <View style={styles.cardRight}>
                 <View style={styles.cardHeaderRow}>
                   <Text style={styles.cardName}>{req.name}</Text>
@@ -201,6 +268,7 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
                   <Text style={{ fontWeight: '900' }}>{req.relation}</Text>
                 </Text>
                 <Text style={styles.cardInfo}>{req.requestedBy}</Text>
+
 
                 {/* actions for this incoming request */}
                 <View style={styles.actionRow}>
@@ -222,10 +290,12 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
           ))
         )}
 
+
         {/* SECTION: Sent Invitations – requests initiated from Add Family screen */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
           Sent Invitations
         </Text>
+
 
         {sentRequests.length === 0 ? (
           <View style={styles.emptyBox}>
@@ -258,7 +328,9 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
   );
 };
 
+
 export default Notification;
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -327,6 +399,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#7C9086',
     lineHeight: 18,
+  },
+
+  // Reminder alert cards
+  reminderCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  reminderLeft: {
+    flex: 1,
+  },
+  reminderTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: TEXT_COLOR,
+  },
+  reminderTime: {
+    fontSize: 12,
+    color: '#7C9086',
+    marginTop: 2,
+  },
+  reminderRight: {
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  reminderStatus: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: ACCENT_COLOR,
   },
 
   // Incoming cards
