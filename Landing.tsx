@@ -16,8 +16,10 @@ import {
   Image,
 } from 'react-native';
 
+
 // I keep screen width here so layout and drawer width can adapt on any device
 const { width } = Dimensions.get('window');
+
 
 // My main app colors – try to keep all screens using this same palette
 const THEME_COLOR = '#255E67';
@@ -26,9 +28,11 @@ const ACCENT_COLOR = '#2FA678';
 const LIGHT_GRAY = '#F2F7F5';
 const SOFT_BG = '#FAFFFB';
 
+
 // profile modes shared with NewBar
 // backend: these map to 3 tabs in profile API – about info, editable fields, and password change
 type NewBarMode = 'about' | 'edit' | 'password';
+
 
 // type for family member item shown in Landing
 // backend: this is exactly what I expect from family list endpoint
@@ -39,6 +43,7 @@ type FamilyMember = {
   emoji: string;    // small icon decided on frontend from relation
 };
 
+
 interface LandingProps {
   userName: string;                       // backend: logged-in user’s display name
   onLogout: () => void;                   // backend: clear token / session then go to login
@@ -48,7 +53,9 @@ interface LandingProps {
   onOpenNotification: () => void;         // bell → notification screen (incoming family requests)
   onOpenHistory: () => void;              // navigate to History.tsx (medical history)
   familyMembers: FamilyMember[];          // backend: current accepted family list for this user
+  onOpenReminders: () => void;            // navigate to Reminder.tsx (medication & task reminders)
 }
+
 
 const Landing = ({
   userName,
@@ -59,6 +66,7 @@ const Landing = ({
   onOpenNotification,
   onOpenHistory,
   familyMembers,
+  onOpenReminders,
 }: LandingProps) => {
   // local UI state for this home screen only – does not go to backend
   const [menuOpen, setMenuOpen] = useState(false);           // controls side drawer open/close
@@ -66,8 +74,10 @@ const Landing = ({
   const [typing, setTyping] = useState(false);               // prevent overlapping typewriter runs
   const [photoModalVisible, setPhotoModalVisible] = useState(false); // small modal to pick profile photo
 
+
   // friendly intro line from “Mero Care” nurse bot
   const fullMessage = 'Hi, I am Mero Care, caring for you everyday 😊';
+
 
   // nurse avatar click → typewriter effect
   const handleNurseClick = () => {
@@ -75,6 +85,7 @@ const Landing = ({
     if (typing) return;
     setTypewriterText('');
     setTyping(true);
+
 
     let index = 0;
     const interval = setInterval(() => {
@@ -88,10 +99,12 @@ const Landing = ({
     }, 40); // speed of typewriter animation (ms per character)
   };
 
+
   // simple custom drawer animation (no React Navigation drawer)
   // backend: this is purely visual – no API call
   const menuAnim = useRef(new Animated.Value(0)).current;
   const menuWidth = Math.min(360, Math.round(width * 0.82)); // max drawer width
+
 
   useEffect(() => {
     // when menuOpen changes, animate drawer in or out
@@ -103,6 +116,7 @@ const Landing = ({
     }).start();
   }, [menuOpen]);
 
+
   // confirm before logging the user out
   // backend: onLogout should handle token removal and navigation back to login screen
   const confirmLogout = () => {
@@ -112,17 +126,20 @@ const Landing = ({
     ]);
   };
 
+
   // animate side drawer sliding in from left
   const translateX = menuAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [-menuWidth - 10, 0],
   });
 
+
   // dim background when menu is open
   const overlayOpacity = menuAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.5],
   });
+
 
   // small helper for drawer menu items
   // backend: each item maps to a profile mode in NewBar (no API call here)
@@ -149,10 +166,12 @@ const Landing = ({
     </TouchableOpacity>
   );
 
+
   return (
     <View style={styles.mainContainer}>
       {/* status bar theme to match soft background */}
       <StatusBar barStyle="dark-content" backgroundColor={SOFT_BG} />
+
 
       <SafeAreaView style={styles.safeArea}>
         {/* HEADER – greeting + quick actions (bell + logout) */}
@@ -178,12 +197,14 @@ const Landing = ({
               </View>
             </TouchableOpacity>
 
+
             {/* greeting the logged in user */}
             <View style={styles.headerText}>
               <Text style={styles.greetingText}>Hi {userName}!</Text>
               <Text style={styles.subText}>How are you feeling today?</Text>
             </View>
           </View>
+
 
           <View style={styles.headerRight}>
             {/* notification bell opens dedicated notification screen */}
@@ -200,6 +221,7 @@ const Landing = ({
             </TouchableOpacity>
           </View>
         </View>
+
 
         {/* MAIN CONTENT – scrollable dashboard */}
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -218,6 +240,7 @@ const Landing = ({
               </View>
             </View>
 
+
             <View style={styles.symptomBottomRow}>
               <TouchableOpacity
                 style={styles.clickButtonPrimary}
@@ -225,6 +248,7 @@ const Landing = ({
               >
                 <Text style={styles.clickButtonPrimaryText}>Start Check</Text>
               </TouchableOpacity>
+
 
               {/* nurse icon triggers typewriter helper message */}
               {/* backend: no API, just a friendly local animation */}
@@ -236,6 +260,7 @@ const Landing = ({
               </TouchableOpacity>
             </View>
 
+
             {typewriterText.length > 0 && (
               <Text style={{ color: '#fff', marginTop: 12, fontWeight: '700' }}>
                 {typewriterText}
@@ -243,10 +268,12 @@ const Landing = ({
             )}
           </View>
 
+
           {/* SERVICES – small grid of key features */}
           {/* backend: each tile opens a separate feature/screen */}
           <View style={styles.servicesSection}>
             <Text style={styles.sectionTitle}>Services</Text>
+
 
             <View style={styles.servicesGrid}>
               {[
@@ -260,7 +287,11 @@ const Landing = ({
                   title: 'Add Family',
                   onPress: onOpenAddFamily, // send family invitation (email-based)
                 },
-                { icon: '⏰', title: 'Reminders' }, // future feature slot
+                {
+                  icon: '⏰',
+                  title: 'Reminders',
+                  onPress: onOpenReminders, // navigate to Reminder screen
+                },
               ].map((item, index) => (
                 <TouchableOpacity
                   key={index}
@@ -276,6 +307,7 @@ const Landing = ({
             </View>
           </View>
 
+
           {/* FAMILY – shows message when empty, list after accept */}
           {/* backend: this section reflects familyMembers prop coming from API */}
           <View style={styles.familySection}>
@@ -284,6 +316,7 @@ const Landing = ({
               {/* optional “See all” – can later navigate to full family list */}
               <Text style={styles.seeAllText}>See all</Text>
             </View>
+
 
             {familyMembers.length === 0 ? (
               // empty state when user has not accepted any family request yet
@@ -316,6 +349,7 @@ const Landing = ({
           </View>
         </ScrollView>
 
+
         {/* OVERLAY – catches taps outside the drawer to close it */}
         {/* backend: this is just UI for dimming the main content when drawer is open */}
         <Animated.View
@@ -331,6 +365,7 @@ const Landing = ({
             />
           </Pressable>
         </Animated.View>
+
 
         {/* CUSTOM SIDE DRAWER – simple user panel */}
         {/* backend: this panel groups profile-related routes and logout */}
@@ -367,7 +402,9 @@ const Landing = ({
                 </TouchableOpacity>
               </View>
 
+
               <View style={styles.divider} />
+
 
               {/* profile related routes controlled by NewBar */}
               {/* backend: each one can hit its own profile endpoint when NewBar opens */}
@@ -388,6 +425,7 @@ const Landing = ({
               />
             </ScrollView>
 
+
             {/* bottom logout action inside drawer */}
             {/* backend: same onLogout handler as header icon */}
             <TouchableOpacity style={styles.logoutRow} onPress={confirmLogout}>
@@ -395,6 +433,7 @@ const Landing = ({
             </TouchableOpacity>
           </View>
         </Animated.View>
+
 
         {/* Profile Photo Modal – reserved spot for image picker integration */}
         {/* backend: when wired, this will upload and save profile picture for the user */}
@@ -439,13 +478,17 @@ const Landing = ({
   );
 };
 
+
 export default Landing;
 
+
 // ================= STYLES – soft dashboard look to keep things calm =================
+
 
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: SOFT_BG },
   safeArea: { flex: 1 },
+
 
   headerContainer: {
     flexDirection: 'row',
@@ -498,7 +541,9 @@ const styles = StyleSheet.create({
   },
   iconText: { fontSize: 18 },
 
+
   scrollContent: { paddingHorizontal: 18, paddingTop: 18 },
+
 
   symptomCard: {
     backgroundColor: THEME_COLOR,
@@ -536,6 +581,7 @@ const styles = StyleSheet.create({
   },
   symptomSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.92)' },
 
+
   symptomBottomRow: {
     flexDirection: 'row',
     marginTop: 12,
@@ -569,6 +615,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   smallEmoji: { fontSize: 22 },
+
 
   servicesSection: { marginBottom: 22 },
   sectionTitle: {
@@ -613,6 +660,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
+
 
   familySection: {
     marginBottom: 16,
@@ -661,6 +709,7 @@ const styles = StyleSheet.create({
     color: ACCENT_COLOR,
     fontWeight: '700',
   },
+
 
   overlayContainer: {
     ...StyleSheet.absoluteFillObject,

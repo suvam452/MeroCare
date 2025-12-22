@@ -18,8 +18,11 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import AddFamily from './AddFamily';
 import Notification from './Notification';
 import History from './History';
+import Reminder from './Reminder';
+
 
 const { height } = Dimensions.get('window');
+
 
 const COLORS = {
   primaryTeal: '#346e7a',
@@ -28,7 +31,9 @@ const COLORS = {
   greyText: '#aab4be',
 };
 
+
 type NewBarMode = 'about' | 'edit' | 'password';
+
 
 type ScreenType =
   | 'welcome'
@@ -39,7 +44,9 @@ type ScreenType =
   | 'profile'
   | 'addFamily'
   | 'notification'
-  | 'history';
+  | 'history'
+  | 'reminder';
+
 
 type FamilyMember = {
   id: string;
@@ -48,8 +55,10 @@ type FamilyMember = {
   emoji: string;
 };
 
+
 const HeartLogo = () => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -70,6 +79,7 @@ const HeartLogo = () => {
     );
     pulse.start();
   }, [scaleAnim]);
+
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -93,16 +103,20 @@ const HeartLogo = () => {
   );
 };
 
+
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('welcome');
   const [userName, setUserName] = useState<string>('User');
   const [profileMode, setProfileMode] = useState<NewBarMode>('about');
 
+
   // shared family list (initially empty)
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
 
+
   const slideAnim = useRef(new Animated.Value(height * 0.5)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
 
   useEffect(() => {
     if (currentScreen === 'welcome') {
@@ -122,6 +136,7 @@ const App = () => {
     }
   }, [slideAnim, fadeAnim, currentScreen]);
 
+
   // LOGIN SCREEN
   if (currentScreen === 'login') {
     return (
@@ -136,6 +151,7 @@ const App = () => {
     );
   }
 
+
   // SIGNUP SCREEN
   if (currentScreen === 'signup') {
     return (
@@ -145,6 +161,7 @@ const App = () => {
       />
     );
   }
+
 
   // LANDING SCREEN
   if (currentScreen === 'landing') {
@@ -161,14 +178,17 @@ const App = () => {
         onOpenNotification={() => setCurrentScreen('notification')}
         onOpenHistory={() => setCurrentScreen('history')}
         familyMembers={familyMembers}
+        onOpenReminders={() => setCurrentScreen('reminder')}
       />
     );
   }
+
 
   // CHECK SCREEN
   if (currentScreen === 'check') {
     return <Check onBackToLanding={() => setCurrentScreen('landing')} />;
   }
+
 
   // PROFILE SCREEN
   if (currentScreen === 'profile') {
@@ -180,10 +200,12 @@ const App = () => {
     );
   }
 
+
   // ADD FAMILY
   if (currentScreen === 'addFamily') {
     return <AddFamily onBack={() => setCurrentScreen('landing')} />;
   }
+
 
   // NOTIFICATION
   if (currentScreen === 'notification') {
@@ -199,6 +221,7 @@ const App = () => {
             if (alreadyExists) {
               return prev;
             }
+
 
             return [
               ...prev,
@@ -220,21 +243,30 @@ const App = () => {
     );
   }
 
+
   // HISTORY
   if (currentScreen === 'history') {
     return <History onBack={() => setCurrentScreen('landing')} />;
   }
+
+  // REMINDER
+  if (currentScreen === 'reminder') {
+    return <Reminder onBack={() => setCurrentScreen('landing')} />;
+  }
+
 
   // WELCOME
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryTeal} />
 
+
       <View style={styles.topSection}>
         <View style={styles.illustrationPlaceholder}>
           <HeartLogo />
         </View>
       </View>
+
 
       <View style={styles.bottomSectionContainer}>
         <Animated.View
@@ -247,6 +279,7 @@ const App = () => {
             <Text style={styles.title}>Mero-Care</Text>
             <Text style={styles.tagline}>"Your Heath Our Care"</Text>
 
+
             <TouchableOpacity
               style={styles.loginButton}
               activeOpacity={0.8}
@@ -254,6 +287,7 @@ const App = () => {
             >
               <Text style={styles.loginButtonText}>LOGIN</Text>
             </TouchableOpacity>
+
 
             <View style={styles.signupRow}>
               <Text style={styles.signupText}>Don't have an account? </Text>
@@ -270,6 +304,7 @@ const App = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.primaryTeal },
@@ -343,5 +378,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
 
 export default App;
