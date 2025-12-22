@@ -40,10 +40,12 @@ interface SentRequest {
 
 interface NotificationProps {
   onBack: () => void;
+  // callback to tell parent to update Landing's family list
+  onAcceptFamily: (payload: { id: string; name: string; relation: string }) => void;
 }
 
 // Notification center for family connection requests
-const Notification = ({ onBack }: NotificationProps) => {
+const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
   // dummy incoming data – will be replaced with API response later
   const [incomingRequests, setIncomingRequests] = useState<IncomingRequest[]>([
     {
@@ -62,6 +64,7 @@ const Notification = ({ onBack }: NotificationProps) => {
       requestedBy: 'You have been added as family',
       timeAgo: '1 hr ago',
     },
+    // you can add more here: Spouse, Brother, Sister, Son, Daughter, Guardian, ...
   ]);
 
   // dummy sent data – one place to later show what user has invited
@@ -102,8 +105,24 @@ const Notification = ({ onBack }: NotificationProps) => {
      * - remove from incomingRequests
      * - refresh family list on Landing (or global state)
      */
+
+    const req = incomingRequests.find(r => r.id === id);
+    if (!req) {
+      return;
+    }
+
+    // notify parent so it adds this member to Landing's family list
+    onAcceptFamily({
+      id: req.id,
+      name: req.name,
+      relation: req.relation,
+    });
+
     setIncomingRequests(prev => prev.filter(item => item.id !== id));
-    Alert.alert('Request Accepted', 'This family member will be added to your account.');
+    Alert.alert(
+      'Request Accepted',
+      'This family member will be added to your account.',
+    );
   };
 
   // Reject handler – backend only updates request status
@@ -178,7 +197,8 @@ const Notification = ({ onBack }: NotificationProps) => {
                 </View>
                 <Text style={styles.cardEmail}>{req.email}</Text>
                 <Text style={styles.cardRelation}>
-                  Relation: <Text style={{ fontWeight: '900' }}>{req.relation}</Text>
+                  Relation:{' '}
+                  <Text style={{ fontWeight: '900' }}>{req.relation}</Text>
                 </Text>
                 <Text style={styles.cardInfo}>{req.requestedBy}</Text>
 
