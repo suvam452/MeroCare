@@ -16,8 +16,10 @@ import {
   Image,
 } from 'react-native';
 
+// I keep screen width here so layout and drawer width can adapt on any device
 const { width } = Dimensions.get('window');
 
+// My main app colors – try to keep all screens using this same palette
 const THEME_COLOR = '#255E67';
 const TEXT_COLOR = '#133D2E';
 const ACCENT_COLOR = '#2FA678';
@@ -25,15 +27,27 @@ const LIGHT_GRAY = '#F2F7F5';
 const SOFT_BG = '#FAFFFB';
 
 // profile modes shared with NewBar
+// backend: these map to 3 tabs in profile API – about info, editable fields, and password change
 type NewBarMode = 'about' | 'edit' | 'password';
 
+// type for family member item shown in Landing
+// backend: this is exactly what I expect from family list endpoint
+type FamilyMember = {
+  id: string;       // unique id from backend for each relation
+  name: string;     // full name of the family member
+  relation: string; // e.g. Father, Mother, Brother, etc.
+  emoji: string;    // small icon decided on frontend from relation
+};
+
 interface LandingProps {
-  userName: string;
-  onLogout: () => void;
-  onOpenCheck: () => void;
-  onOpenProfile: (mode: NewBarMode) => void;
-  onOpenAddFamily: () => void;
-  onOpenNotification: () => void; // bell → notification screen
+  userName: string;                       // backend: logged-in user’s display name
+  onLogout: () => void;                   // backend: clear token / session then go to login
+  onOpenCheck: () => void;                // opens symptoms check flow
+  onOpenProfile: (mode: NewBarMode) => void; // opens NewBar with correct tab (about/edit/password)
+  onOpenAddFamily: () => void;            // navigate to AddFamily invitation screen
+  onOpenNotification: () => void;         // bell → notification screen (incoming family requests)
+  onOpenHistory: () => void;              // navigate to History.tsx (medical history)
+  familyMembers: FamilyMember[];          // backend: current accepted family list for this user
 }
 
 const Landing = ({
@@ -43,18 +57,21 @@ const Landing = ({
   onOpenProfile,
   onOpenAddFamily,
   onOpenNotification,
+  onOpenHistory,
+  familyMembers,
 }: LandingProps) => {
-  // local UI state for this home screen only
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [typewriterText, setTypewriterText] = useState('');
-  const [typing, setTyping] = useState(false);
-  const [photoModalVisible, setPhotoModalVisible] = useState(false);
+  // local UI state for this home screen only – does not go to backend
+  const [menuOpen, setMenuOpen] = useState(false);           // controls side drawer open/close
+  const [typewriterText, setTypewriterText] = useState('');  // animated helper text from nurse bot
+  const [typing, setTyping] = useState(false);               // prevent overlapping typewriter runs
+  const [photoModalVisible, setPhotoModalVisible] = useState(false); // small modal to pick profile photo
 
   // friendly intro line from “Mero Care” nurse bot
   const fullMessage = 'Hi, I am Mero Care, caring for you everyday 😊';
 
   // nurse avatar click → typewriter effect
   const handleNurseClick = () => {
+    // if already typing, ignore extra taps
     if (typing) return;
     setTypewriterText('');
     setTyping(true);
@@ -65,17 +82,19 @@ const Landing = ({
         clearInterval(interval);
         setTyping(false);
         return;
-        }
+      }
       setTypewriterText(fullMessage.substring(0, index));
       index++;
-    }, 40);
+    }, 40); // speed of typewriter animation (ms per character)
   };
 
   // simple custom drawer animation (no React Navigation drawer)
+  // backend: this is purely visual – no API call
   const menuAnim = useRef(new Animated.Value(0)).current;
-  const menuWidth = Math.min(360, Math.round(width * 0.82));
+  const menuWidth = Math.min(360, Math.round(width * 0.82)); // max drawer width
 
   useEffect(() => {
+    // when menuOpen changes, animate drawer in or out
     Animated.timing(menuAnim, {
       toValue: menuOpen ? 1 : 0,
       duration: 280,
@@ -85,6 +104,7 @@ const Landing = ({
   }, [menuOpen]);
 
   // confirm before logging the user out
+  // backend: onLogout should handle token removal and navigation back to login screen
   const confirmLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel' },
@@ -105,6 +125,7 @@ const Landing = ({
   });
 
   // small helper for drawer menu items
+  // backend: each item maps to a profile mode in NewBar (no API call here)
   const MenuItem = ({
     icon,
     label,
@@ -117,7 +138,7 @@ const Landing = ({
     <TouchableOpacity
       style={styles.menuItem}
       onPress={() => {
-        setMenuOpen(false);
+        setMenuOpen(false); // close drawer before navigating
         onPress && onPress();
       }}
     >
@@ -130,21 +151,34 @@ const Landing = ({
 
   return (
     <View style={styles.mainContainer}>
+      {/* status bar theme to match soft background */}
       <StatusBar barStyle="dark-content" backgroundColor={SOFT_BG} />
 
       <SafeAreaView style={styles.safeArea}>
         {/* HEADER – greeting + quick actions (bell + logout) */}
+        {/* backend: bell opens Notification screen where pending family invitations are fetched */}
         <View style={styles.headerContainer}>
           <View style={styles.headerLeft}>
+            {/* this is my custom hamburger – opens simple animated drawer */}
             <TouchableOpacity
               style={styles.menuButton}
               onPress={() => setMenuOpen(!menuOpen)}
             >
               <View style={styles.hamburgerWrap}>
                 <Text style={styles.menuIcon}>☰</Text>
+                <Text
+                  style={{
+                    color: THEME_COLOR,
+                    fontWeight: '800',
+                    fontSize: 13,
+                  }}
+                >
+                  Menu
+                </Text>
               </View>
             </TouchableOpacity>
 
+            {/* greeting the logged in user */}
             <View style={styles.headerText}>
               <Text style={styles.greetingText}>Hi {userName}!</Text>
               <Text style={styles.subText}>How are you feeling today?</Text>
@@ -153,6 +187,7 @@ const Landing = ({
 
           <View style={styles.headerRight}>
             {/* notification bell opens dedicated notification screen */}
+            {/* backend: onOpenNotification should load incoming family requests for this user */}
             <TouchableOpacity
               style={styles.iconButton}
               onPress={onOpenNotification}
@@ -166,9 +201,10 @@ const Landing = ({
           </View>
         </View>
 
-        {/* MAIN CONTENT */}
+        {/* MAIN CONTENT – scrollable dashboard */}
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* SYMPTOM CHECK CARD – primary CTA of the app */}
+          {/* backend: Start Check should open symptom checker flow and call triage APIs */}
           <View style={styles.symptomCard}>
             <View style={styles.symptomTopRow}>
               <View style={styles.emojiCircle}>
@@ -191,6 +227,7 @@ const Landing = ({
               </TouchableOpacity>
 
               {/* nurse icon triggers typewriter helper message */}
+              {/* backend: no API, just a friendly local animation */}
               <TouchableOpacity
                 style={styles.smallEmojiWrap}
                 onPress={handleNurseClick}
@@ -207,16 +244,21 @@ const Landing = ({
           </View>
 
           {/* SERVICES – small grid of key features */}
+          {/* backend: each tile opens a separate feature/screen */}
           <View style={styles.servicesSection}>
             <Text style={styles.sectionTitle}>Services</Text>
 
             <View style={styles.servicesGrid}>
               {[
-                { icon: '🧾', title: 'Health History' },
+                {
+                  icon: '🧾',
+                  title: 'Health History',
+                  onPress: onOpenHistory, // navigate to History screen
+                },
                 {
                   icon: '👨‍👩‍👧',
                   title: 'Add Family',
-                  onPress: onOpenAddFamily,
+                  onPress: onOpenAddFamily, // send family invitation (email-based)
                 },
                 { icon: '⏰', title: 'Reminders' }, // future feature slot
               ].map((item, index) => (
@@ -234,31 +276,48 @@ const Landing = ({
             </View>
           </View>
 
-          {/* FAMILY – will later be filled from backend list */}
+          {/* FAMILY – shows message when empty, list after accept */}
+          {/* backend: this section reflects familyMembers prop coming from API */}
           <View style={styles.familySection}>
             <View style={styles.familyHeader}>
               <Text style={styles.sectionTitle}>Family Members</Text>
+              {/* optional “See all” – can later navigate to full family list */}
               <Text style={styles.seeAllText}>See all</Text>
             </View>
 
-            {[
-              { name: 'Father name', relation: 'Father', emoji: '👨' },
-              { name: 'Mother naame', relation: 'Mother', emoji: '👩' },
-            ].map((member, index) => (
-              <View key={index} style={styles.familyMemberCard}>
+            {familyMembers.length === 0 ? (
+              // empty state when user has not accepted any family request yet
+              <View style={styles.familyMemberCard}>
                 <View style={styles.familyAvatar}>
-                  <Text style={styles.avatarEmoji}>{member.emoji}</Text>
+                  <Text style={styles.avatarEmoji}>👨‍👩‍👧</Text>
                 </View>
                 <View style={styles.familyInfo}>
-                  <Text style={styles.familyName}>{member.name}</Text>
-                  <Text style={styles.familyRelation}>{member.relation}</Text>
+                  <Text style={styles.familyName}>No family members yet</Text>
+                  <Text style={styles.familyRelation}>
+                    Accept a request from Notifications to add family here.
+                  </Text>
                 </View>
               </View>
-            ))}
+            ) : (
+              // once Notification Accept is pressed and backend adds relation,
+              // parent passes updated familyMembers and each item appears here
+              familyMembers.map(member => (
+                <View key={member.id} style={styles.familyMemberCard}>
+                  <View style={styles.familyAvatar}>
+                    <Text style={styles.avatarEmoji}>{member.emoji}</Text>
+                  </View>
+                  <View style={styles.familyInfo}>
+                    <Text style={styles.familyName}>{member.name}</Text>
+                    <Text style={styles.familyRelation}>{member.relation}</Text>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
         </ScrollView>
 
         {/* OVERLAY – catches taps outside the drawer to close it */}
+        {/* backend: this is just UI for dimming the main content when drawer is open */}
         <Animated.View
           pointerEvents={menuOpen ? 'auto' : 'none'}
           style={[styles.overlayContainer, { opacity: menuAnim }]}
@@ -274,6 +333,7 @@ const Landing = ({
         </Animated.View>
 
         {/* CUSTOM SIDE DRAWER – simple user panel */}
+        {/* backend: this panel groups profile-related routes and logout */}
         <Animated.View
           style={[
             styles.drawer,
@@ -283,6 +343,7 @@ const Landing = ({
           <View style={styles.drawerInner}>
             <ScrollView>
               {/* top profile section – initials as avatar, tap to add photo */}
+              {/* backend: profile photo upload endpoint can be wired to this later */}
               <View style={styles.profileSection}>
                 <TouchableOpacity
                   onPress={() => setPhotoModalVisible(true)}
@@ -294,8 +355,10 @@ const Landing = ({
                 </TouchableOpacity>
                 <View>
                   <Text style={styles.profileName}>{userName}</Text>
+                  {/* static number placeholder – backend can replace with real phone */}
                   <Text style={styles.profilePhone}>9840000000</Text>
                 </View>
+                {/* close icon to dismiss drawer */}
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setMenuOpen(false)}
@@ -307,12 +370,26 @@ const Landing = ({
               <View style={styles.divider} />
 
               {/* profile related routes controlled by NewBar */}
-              <MenuItem icon="ℹ️" label="About me" onPress={() => onOpenProfile('about')} />
-              <MenuItem icon="✏️" label="Edit details" onPress={() => onOpenProfile('edit')} />
-              <MenuItem icon="🔒" label="Change password" onPress={() => onOpenProfile('password')} />
+              {/* backend: each one can hit its own profile endpoint when NewBar opens */}
+              <MenuItem
+                icon="ℹ️"
+                label="About me"
+                onPress={() => onOpenProfile('about')}
+              />
+              <MenuItem
+                icon="✏️"
+                label="Edit details"
+                onPress={() => onOpenProfile('edit')}
+              />
+              <MenuItem
+                icon="🔒"
+                label="Change password"
+                onPress={() => onOpenProfile('password')}
+              />
             </ScrollView>
 
             {/* bottom logout action inside drawer */}
+            {/* backend: same onLogout handler as header icon */}
             <TouchableOpacity style={styles.logoutRow} onPress={confirmLogout}>
               <Text style={styles.logoutText}>Log out</Text>
             </TouchableOpacity>
@@ -320,6 +397,7 @@ const Landing = ({
         </Animated.View>
 
         {/* Profile Photo Modal – reserved spot for image picker integration */}
+        {/* backend: when wired, this will upload and save profile picture for the user */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -380,20 +458,26 @@ const styles = StyleSheet.create({
     borderBottomColor: LIGHT_GRAY,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  menuButton: { padding: 6, marginRight: 12 },
+  menuButton: { marginRight: 12 },
   hamburgerWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#EAF8F0',
     alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  menuIcon: { fontSize: 20, color: TEXT_COLOR, fontWeight: '700' },
+  menuIcon: {
+    fontSize: 18,
+    color: THEME_COLOR,
+    fontWeight: '900',
+    marginRight: 8,
+  },
   headerText: { flex: 1 },
   greetingText: { fontSize: 18, fontWeight: '900', color: TEXT_COLOR },
   subText: { fontSize: 13, color: ACCENT_COLOR, marginTop: 2 },
@@ -530,7 +614,9 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  familySection: { marginBottom: 16 },
+  familySection: {
+    marginBottom: 16,
+  },
   familyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -539,36 +625,36 @@ const styles = StyleSheet.create({
   },
   seeAllText: { fontSize: 12, fontWeight: '700', color: ACCENT_COLOR },
   familyMemberCard: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: LIGHT_GRAY,
+    borderColor: '#E3EFE8',
     shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 4,
   },
   familyAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 14,
-    backgroundColor: THEME_COLOR,
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: '#EAF8F0',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  avatarEmoji: { fontSize: 26, color: '#fff' },
+  avatarEmoji: { fontSize: 26 },
   familyInfo: { flex: 1 },
   familyName: {
     fontSize: 15,
     fontWeight: '800',
     color: TEXT_COLOR,
-    marginBottom: 2,
+    marginBottom: 3,
   },
   familyRelation: {
     fontSize: 12,
@@ -604,19 +690,23 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 18,
     overflow: 'hidden',
   },
-  profileSection: { flexDirection: 'row', alignItems: 'center', paddingBottom: 8 },
-  profileCircle: {
-    width: 92,
-    height: 92,
-    borderRadius: 22,
-    backgroundColor: '#EAF8F0',
-    justifyContent: 'center',
+  profileSection: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingBottom: 8,
+  },
+  profileCircle: {
+    width: 96,             // square, same width & height
+  height: 96,
+  borderRadius: 48,      // exactly half of width/height → perfect circle
+  backgroundColor: '#EAF8F0',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 12,
+  shadowColor: '#000',
+  shadowOpacity: 0.04,
+  shadowRadius: 8,
+  elevation: 4,
   },
   profileInitial: { fontSize: 36, fontWeight: '900', color: THEME_COLOR },
   profileText: { flex: 1 },
@@ -638,46 +728,50 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   closeIcon: { fontSize: 20, fontWeight: 'bold', color: TEXT_COLOR },
-  divider: { height: 1, backgroundColor: LIGHT_GRAY, marginVertical: 16 },
+  divider: { height: 1, backgroundColor: '#E3EFE8', marginVertical: 18 },
   menuItems: { flex: 1 },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 6,
   },
   menuItemIconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: '#E8FBEE',
+    width: 56,
+    height: 56,
+    borderRadius: 20,
+    backgroundColor: '#EAF8F0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 16,
     shadowColor: '#000',
-    shadowOpacity: 0.02,
+    shadowOpacity: 0.03,
     shadowRadius: 6,
-    elevation: 2,
+    elevation: 3,
   },
-  menuItemIcon: { fontSize: 18 },
-  menuItemLabel: { fontSize: 15, color: TEXT_COLOR, fontWeight: '800' },
-  drawerBottom: { paddingVertical: 12, borderTopWidth: 1, borderTopColor: LIGHT_GRAY },
+  menuItemIcon: { fontSize: 22 },
+  menuItemLabel: { fontSize: 16, color: TEXT_COLOR, fontWeight: '800' },
+  drawerBottom: {
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: LIGHT_GRAY,
+  },
   logoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2FA678',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginHorizontal: 18,
-    marginBottom: 12,
+    backgroundColor: ACCENT_COLOR,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 18,
+    marginHorizontal: 6,
+    marginBottom: 8,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 10,
   },
   logoutText: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#fff',
     fontWeight: '900',
     textAlign: 'center',
