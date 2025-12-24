@@ -31,7 +31,7 @@ class DiagnosisOutput(BaseModel):
 @router.post("/check", response_model=DiagnosisOutput)
 async def check_symptoms(data: SymptomInput):
     """
-    User sends symptoms → AI responds → we return diseases, first aid, urgency.
+    User sends symptoms → AI responds → we return diseases, first aid, urgency, full response.
     """
     
     prompt = f"""
@@ -44,6 +44,7 @@ Return response EXACTLY in this format:
     "diseases": ["d1", "d2", "d3"],
     "first_aid": ["tip1", "tip2", "tip3"],
     "urgency": "ROUTINE"
+     "full_response": "explanation text"
 }}
 
 Analyze the user's symptoms:
