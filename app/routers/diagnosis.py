@@ -24,7 +24,7 @@ class SymptomInput(BaseModel):
 
 class DiagnosisOutput(BaseModel):
     possible_diseases: list[str]
-    first_aid: list[str]
+    first_aid: str
     urgency: str
     full_response: str
 
@@ -37,13 +37,19 @@ async def check_symptoms(data: SymptomInput):
     prompt = f"""
 IMPORTANT: You MUST reply in VALID JSON ONLY. 
 NO text outside JSON. NO markdown. NO comments.
+- Max 5 diseases
+- Max 5 first aid tips
+- Urgency must be one of: ROUTINE, URGENT, EMERGENCY
 
 Return response EXACTLY in this format:
 
 {{
     "diseases": ["d1", "d2", "d3"],
-    "first_aid": ["tip1", "tip2", "tip3"],
+
+    "first_aid":"explanation text"
+
     "urgency": "ROUTINE"
+
      "full_response": "explanation text"
 }}
 
