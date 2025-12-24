@@ -28,4 +28,69 @@ class DiagnosisOutput(BaseModel):
     urgency: str
     full_response: str
 
+@router.post("/check", response_model=DiagnosisOutput)
+async def check_symptoms(data: SymptomInput):
+    """
+    User sends symptoms → AI responds → we return diseases, first aid, urgency.
+    """
+    
+    prompt = f"""
+IMPORTANT: You MUST reply in VALID JSON ONLY. 
+NO text outside JSON. NO markdown. NO comments.
 
+Return response EXACTLY in this format:
+
+{{
+    "diseases": ["d1", "d2", "d3"],
+    "first_aid": ["tip1", "tip2", "tip3"],
+    "urgency": "ROUTINE"
+}}
+
+Analyze the user's symptoms:
+
+Symptoms: {data.symptoms}
+Age: {data.age}
+Gender: {data.gender}
+"""
+
+    response = groq_client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {"role": "system", "content": "Return ONLY JSON. No extra words at all."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.2,
+    )
+
+    raw_text = response.choices[0].message.content.strip()
+
+    print("\n====== AI RAW RESPONSE ======")
+    print(raw_text)
+    print("================================\n")
+
+    try:
+        parsed = json.loads(raw_text)
+    except Exception:
+       
+        cleaned = re.sub(r"```.*?```", "", raw_text, flags=re.DOTALL)
+        cleaned = cleaned.replace("```json", "").replace("```", "").strip()
+
+        try:
+            parsed = json.loads(cleaned)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"AI returned invalid JSON.\nError: {e}\nRaw Response:\n{raw_text}",
+            )
+
+    return DiagnosisOutput(
+        possible_diseases=parsed.get("diseases", []),
+        first_aid=parsed.get("first_aid", []),
+        urgency=parsed.get("urgency", "ROUTINE"),
+        full_response=raw_text,
+    )
+
+
+@router.get("/")
+def diagnosis_home():
+    return {"message": "Diagnosis API is running!"}
