@@ -7,7 +7,7 @@ from .database import Base
 class User(Base):
     __tablename__="UserInfo"
     id=Column(Integer,primary_key=True,index=True)
-    diagnosis=relationship("Diagnosis",back_populates="owner")
+    diagnoses=relationship("Diagnosis",back_populates="owner")
     medical_records=relationship("MedicalHistory",back_populates="owner")
     full_name=Column(String(100),nullable=False)
     email=Column(String(100),unique=True,index=True)
@@ -26,7 +26,7 @@ class Diagnosis(Base):
     __tablename__="Diagnosis"
     id=Column(Integer,primary_key=True,index=True)
     user_id=Column(Integer,ForeignKey("UserInfo.id"))
-    owner=relationship("User",back_populates="Diagnosis")
+    owner=relationship("User",back_populates="diagnoses")
     symptoms=Column(Text,nullable=False)
     predicted_disease=Column(String(150),nullable=False)
     treatment_advice=Column(Text,nullable=True)
@@ -42,7 +42,7 @@ class MedicalHistory(Base):
     __tablename__="MedicalRecords"
     id=Column(Integer,primary_key=True,index=True)
     user_id=Column(Integer,ForeignKey("UserInfo.id"),nullable=False)
-    owner=relationship("User",back_populates="MedicalRecords")
+    owner=relationship("User",back_populates="medical_records")
     illness=Column(String(150),nullable=False)
     doctor_name=Column(String(100),nullable=True)
     hospital_name=Column(String(150),nullable=True)
