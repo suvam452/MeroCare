@@ -28,8 +28,6 @@ class UserResponse(UserBase):
 
 class SymptomInput(BaseModel):
     symptoms:List[str]
-    days_sick:int
-    pain_level:int
     age:int
     gender:str
 
@@ -39,6 +37,8 @@ class Diagnosis(BaseModel):
     suggested_treatment:str
     created_at:datetime
     symptoms:str
+    urgency: str
+    full_response: str
 
     class Config:
         from_attributes=True
