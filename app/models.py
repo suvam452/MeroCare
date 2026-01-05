@@ -30,6 +30,7 @@ class Diagnosis(Base):
     symptoms=Column(Text,nullable=False)
     predicted_disease=Column(String(150),nullable=False)
     treatment_advice=Column(Text,nullable=True)
+    urgency=Column(String(50))
     created_at=Column(DateTime(timezone=True),server_default=func.now())
 
 class HealthTip(Base):
