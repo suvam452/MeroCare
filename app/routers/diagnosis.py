@@ -5,7 +5,8 @@ from groq import Groq
 import os
 import json
 import re
-
+from app.schemas import SymptomInput , Diagnosis
+from datetime import datetime
 
 
 load_dotenv()
@@ -23,13 +24,13 @@ router = APIRouter()
    #gender: str | None = None
 
 
-class DiagnosisOutput(BaseModel):
-    possible_diseases: list[str]
-    first_aid: str
-    urgency: str
-    full_response: str
+#class DiagnosisOutput(BaseModel):
+ #   possible_diseases: list[str]
+  #  first_aid: str
+   # urgency: str
+    #full_response: str
 
-@router.post("/check", response_model=DiagnosisOutput)
+@router.post("/check")
 async def check_symptoms(data: SymptomInput):
     """
     User sends symptoms → AI responds → we return diseases, first aid, urgency, full response.
@@ -45,16 +46,17 @@ NO text outside JSON. NO markdown. NO comments.
 Return response EXACTLY in this format:
 
 {{
-    "diseases": ["d1", "d2", "d3"],
-
-    "first_aid":"explanation text"
-
-    "urgency": "ROUTINE"
-
-     "full_response": "explanation text"
+    "predicted_disease": "most likely disease name",
+    "suggested_treatment": "recommended treatment and first aid steps",
+    "urgency": "ROUTINE or URGENT or EMERGENCY"
+    "full response": "explanation text"
+    
 }}
 
-Analyze the user's symptoms:
+Analyze the user's symptoms and provide:
+1. The most likely disease (single disease name)
+2. Suggested treatment and first aid steps
+3. Urgency level (must be exactly: ROUTINE, URGENT, or EMERGENCY)
 
 Symptoms: {data.symptoms}
 Age: {data.age}
@@ -91,11 +93,14 @@ Gender: {data.gender}
                 detail=f"AI returned invalid JSON.\nError: {e}\nRaw Response:\n{raw_text}",
             )
 
-    return DiagnosisOutput(
-        possible_diseases=parsed.get("diseases", []),
-        first_aid=parsed.get("first_aid", []),
+    return Diagnosis(
+        id=0, 
+        predicted_disease=parsed.get("predicted_disease", "Unknown"),
+        suggested_treatment=parsed.get("suggested_treatment", "Consult a healthcare professional"),
+        created_at=datetime.now(),
+        symptoms=", ".join(data.symptoms), 
         urgency=parsed.get("urgency", "ROUTINE"),
-        full_response=raw_text,
+        full_response=raw_text
     )
 
 
