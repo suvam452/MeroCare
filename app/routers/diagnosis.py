@@ -7,6 +7,7 @@ import json
 import re
 
 
+
 load_dotenv()
 
 
@@ -17,9 +18,9 @@ router = APIRouter()
 
 
 class SymptomInput(BaseModel):
-    symptoms: str
-    age: int | None = None
-    gender: str | None = None
+  symptoms: str
+   age: int | None = None
+   gender: str | None = None
 
 
 class DiagnosisOutput(BaseModel):
