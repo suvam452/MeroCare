@@ -17,10 +17,10 @@ groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 router = APIRouter()
 
 
-class SymptomInput(BaseModel):
-  symptoms: str
-   age: int | None = None
-   gender: str | None = None
+#class SymptomInput(BaseModel):
+ # symptoms: str
+  # age: int | None = None
+   #gender: str | None = None
 
 
 class DiagnosisOutput(BaseModel):
