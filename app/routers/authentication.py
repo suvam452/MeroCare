@@ -13,8 +13,8 @@ def create_user(user:schemas.UserCreate,db:Session=Depends(database.get_db)):
     return crud.create_user(db=db,user=user)
 
 @router.post("/login",response_model=schemas.Token)
-def login(user_credentials:schemas.UserLogin,db:Session=Depends(database.get_db)):
-    user=crud.get_user_by_email(db,email=user_credentials.email)
+def login(user_credentials:OAuth2PasswordRequestForm=Depends(),db:Session=Depends(database.get_db)):
+    user=crud.get_user_by_email(db,email=user_credentials.username)
     if not user or not utils.Hash.verify(user_credentials.password,user.hashed_password):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Invalid Credentials")
     access_token=oauth2.create_access_token(data={"user_id":str(user.id)})
