@@ -19,7 +19,7 @@ import AddFamily from './AddFamily';
 import Notification from './Notification';
 import History from './History';
 import Reminder from './Reminder';
-
+import AsyncStorage from '@react-native-async-storage'
 
 const { height } = Dimensions.get('window');
 
