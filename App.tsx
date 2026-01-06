@@ -204,7 +204,11 @@ const App = () => {
     return (
       <Landing
         userName={userName}
-        onLogout={() => setCurrentScreen('login')}
+        onLogout={async() => {
+          await AsyncStorage.removeItem('userToken');
+          setUserName('');
+          setCurrentScreen('login');
+        }}
         onOpenCheck={() => setCurrentScreen('check')}
         onOpenProfile={(mode: NewBarMode) => {
           setProfileMode(mode);
