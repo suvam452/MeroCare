@@ -12,6 +12,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import api from './src/services/api';
 
 const THEME_COLOR = '#265E68';
 const TEXT_COLOR = '#333';
@@ -138,6 +139,15 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
       newErrors.dateOfBirth = 'Please enter your date of birth';
     } else if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.dateOfBirth)) {
       newErrors.dateOfBirth = 'Format must be YYYY-MM-DD';
+    }else{
+      const [year, month, day] = formData.dateOfBirth.split('-').map(Number);
+      if (month < 1 || month > 12) {
+        newErrors.dateOfBirth = 'Invalid month (must be 01-12)';
+      } else if (day < 1 || day > 31) {
+        newErrors.dateOfBirth = 'Invalid day (must be 01-31)';
+      } else if (year > new Date().getFullYear()) {
+         newErrors.dateOfBirth = 'Date cannot be in the future';
+      }
     }
 
     if (!formData.address.trim()) newErrors.address = 'Please enter your address';
@@ -171,26 +181,18 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
 
     setLoading(true);
     try {
-      /**
-       * BACKEND INTEGRATION – SIGNUP
-       *
-       * API: POST /auth/signup
-       * Body:
-       * {
-       *   fullName,
-       *   mobileNumber,
-       *   email,
-       *   dateOfBirth,
-       *   address,
-       *   bloodGroup,
-       *   password,
-       * }
-       *
-       * On success:
-       * - navigate to login or auto-login
-       */
-      await new Promise<void>(resolve => setTimeout(resolve, 1500));
-
+      console.log("Sending Signup Request...");
+      const payload={
+        full_name:formData.fullName,
+        email: formData.email,
+          password: formData.password,
+          mobile_number: formData.mobileNumber,
+          address: formData.address,
+          blood_group: formData.bloodGroup,
+          dob: formData.dateOfBirth
+      };
+      const response=await api.post('/signup',payload);
+      console.log("Signup Successful",response.data);
       Alert.alert('Success! 🎉', 'Account created successfully!', [
         {
           text: 'OK',
@@ -210,6 +212,18 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
           },
         },
       ]);
+    }
+    catch(error:any){
+      console.error("Signup Failed",error);
+      let errorMessage="Something went wrong.";
+      if(error.response){
+        errorMessage=error.response.data.detail || JSON.stringify(error.response.data);
+        console.log("Backend Error Data:",error.response.data);
+      }
+      else if(error.request){
+        errorMessage = "Network Error.";
+      }
+      Alert.alert("Signup Failed");
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import List,Optional
-from datetime import datetime
+from datetime import datetime,date
 
 class Token(BaseModel):
     access_token: str
@@ -12,6 +12,10 @@ class TokenData(BaseModel):
 class UserBase(BaseModel):
     email:EmailStr
     full_name:str
+    mobile_number:str
+    address:Optional[str]=None
+    blood_group:Optional[str]=None
+    dob:Optional[date]=None
 
 class UserCreate(UserBase):
     password: str

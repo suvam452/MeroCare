@@ -9,7 +9,11 @@ def create_user(db:Session,user:schemas.UserCreate):
     db_user=models.User(
         email=user.email,
         full_name=user.full_name,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        dob=user.dob,
+        blood_group=user.blood_group,
+        mobile_number=user.mobile_number,
+        address=user.address
     )
     db.add(db_user)
     db.commit()
