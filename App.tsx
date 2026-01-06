@@ -9,6 +9,7 @@ import {
   StatusBar,
   Easing,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import LoginScreen from './Login';
 import SignUpScreen from './Signup';
@@ -178,10 +179,18 @@ const App = () => {
         onBack={() => setCurrentScreen('welcome')}
         onSignUpClick={() => setCurrentScreen('signup')}
         onLoginSuccess={async(token) => {
-          await AsyncStorage.setItem('userToken',token);
-          const res=await api.get('/users/me');
-          setUserName(res.data.full_name);
-          setCurrentScreen('landing');
+          try{
+            await AsyncStorage.setItem('userToken',token);
+            console.log("Fetching User Profile...");
+            const res=await api.get('/users/me');
+            console.log("User Found",res.data);
+            setUserName(res.data.full_name);
+            setCurrentScreen('landing');
+          }
+          catch(error){
+            console.error("Failed to fetch profile:",error);
+            Alert.alert("Error","Successful login, but could not load profile");
+          }
         }}
       />
     );

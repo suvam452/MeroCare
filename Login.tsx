@@ -15,6 +15,7 @@ import {
   Easing,
   Dimensions,
 } from 'react-native';
+import api from './src/services/api';
 
 const { height } = Dimensions.get('window');
 
@@ -97,7 +98,7 @@ const InputField = ({
 interface LoginScreenProps {
   onBack: () => void;
   onSignUpClick: () => void;
-  onLoginSuccess: (userName: string) => void;
+  onLoginSuccess: (token: string) => void;
 }
 
 export default function LoginScreen({
@@ -179,11 +180,19 @@ export default function LoginScreen({
 
     setLoading(true);
     try {
-      await new Promise<void>(resolve => setTimeout(resolve, 1200));
-      const raw = formData.email.split('@')[0] || 'User';
-      const name = raw.charAt(0).toUpperCase() + raw.slice(1);
-      onLoginSuccess(name);
-    } catch {
+      const loginData=new FormData();
+      loginData.append('username',formData.email);
+      loginData.append('password',formData.password);
+      console.log("Sending login request...")
+      const response=await api.post("/login",loginData,{
+        headers:{'Content-Type':'multipart/form-data'}
+      });
+      console.log('Login Successful');
+      const token=response.data.access_token;
+      onLoginSuccess(token);
+    } catch(error:any) {
+      console.error('Login Error',error);
+      const errorMessage=error.response?.data?.detail||'Failed to login'
       Alert.alert('Error', 'Failed to login. Please try again.');
     } finally {
       setLoading(false);
