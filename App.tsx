@@ -182,7 +182,7 @@ const App = () => {
           try{
             await AsyncStorage.setItem('userToken',token);
             console.log("Fetching User Profile...");
-            const res=await api.get('/users/me');
+            const res=await api.get('/users/me',{headers:{Authorization:`Bearer ${token}`}});
             console.log("User Found",res.data);
             setUserName(res.data.full_name);
             setCurrentScreen('landing');
