@@ -22,6 +22,7 @@ import Reminder from './Reminder';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './src/services/api';
 
+
 const { height } = Dimensions.get('window');
 
 
