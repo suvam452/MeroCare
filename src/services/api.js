@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 const getBaseURL = () => {
-  if (_DEV_) {
+  if (__DEV__) {
     return Platform.OS === 'android' 
       ? 'http://10.0.2.2:8000' 
       : 'http://localhost:8000';
@@ -21,7 +21,7 @@ api.interceptors.request.use(
     async (config)=>{
         const token=await AsyncStorage.getItem('userToken');
         if(token){
-            config.headers.Authorization='Bearer ${token}';
+            config.headers.Authorization=`Bearer ${token}`;
         }
         return config;
     },
