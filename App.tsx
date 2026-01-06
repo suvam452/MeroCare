@@ -8,6 +8,7 @@ import {
   Dimensions,
   StatusBar,
   Easing,
+  ActivityIndicator,
 } from 'react-native';
 import LoginScreen from './Login';
 import SignUpScreen from './Signup';
@@ -108,9 +109,9 @@ const HeartLogo = () => {
 
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('welcome');
-  const [userName, setUserName] = useState<string>('User');
+  const [userName, setUserName] = useState<string>('');
   const [profileMode, setProfileMode] = useState<NewBarMode>('about');
-
+  const [loading,setLoading]=useState(true);
 
   // shared family list (initially empty)
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
@@ -119,6 +120,30 @@ const App = () => {
   const slideAnim = useRef(new Animated.Value(height * 0.5)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  useEffect(()=>{
+    const checkLogInStatus=async()=>{
+      try{
+        const token=await AsyncStorage.getItem('userToken');
+        if (token){
+          const response=await api.get('/users/me');
+          setUserName(response.data.full_name);
+          setCurrentScreen('landing');
+        }
+        else{
+          setCurrentScreen('welcome');
+        }
+      }
+      catch(error){
+        console.log("Session expired or invalid");
+        await AsyncStorage.removeItem('userToken');
+        setCurrentScreen('welcome');
+      }
+      finally{
+        setLoading(false);
+      }
+    };
+    checkLogInStatus();
+  },[]);
 
   useEffect(() => {
     if (currentScreen === 'welcome') {
@@ -138,6 +163,13 @@ const App = () => {
     }
   }, [slideAnim, fadeAnim, currentScreen]);
 
+  if(loading){
+    return(
+      <View style={{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:'#fff'}}>
+        <ActivityIndicator size="large" color="#008080"></ActivityIndicator>
+      </View>
+    );
+  }
 
   // LOGIN SCREEN
   if (currentScreen === 'login') {
@@ -145,8 +177,10 @@ const App = () => {
       <LoginScreen
         onBack={() => setCurrentScreen('welcome')}
         onSignUpClick={() => setCurrentScreen('signup')}
-        onLoginSuccess={name => {
-          setUserName(name || 'User');
+        onLoginSuccess={async(token) => {
+          await AsyncStorage.setItem('userToken',token);
+          const res=await api.get('/users/me');
+          setUserName(res.data.full_name);
           setCurrentScreen('landing');
         }}
       />
