@@ -15,7 +15,6 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { diagnosisService } from './src/services/diagnosisService';
 // ---------------------- Constants ----------------------
 const COLORS = {
   gradientStart: '#00C4B4',
