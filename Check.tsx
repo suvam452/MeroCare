@@ -48,18 +48,18 @@ interface CheckProps {
 }
 
 // ---------------------- Backend Placeholder ----------------------
-async function sendMessageToBackend(userText: string): Promise<any> {
+async function sendMessageToBackend(userText: string, age?: number, gender?: string): Promise<any> {
   try {
     const response = await fetch(`${'http://192.168.1.74:8000/diagnosis'}/check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        symptoms: [userText], 
-        age: 25,            
-        gender: "Male"        
-      }),
+     body: JSON.stringify({
+  symptoms: [userText], 
+  age: age || 25,            
+  gender: gender || "Not specified"        
+}),
     });
 
     if (!response.ok) {
@@ -139,25 +139,21 @@ const [userGender, setUserGender] = useState<string>('');
     setIsSending(true);
 
    try {
-  const diagnosis = await sendMessageToBackend(trimmed);
+  const diagnosis = await sendMessageToBackend(trimmed, userAge ? parseInt(userAge) : undefined,
+  userGender || undefined);
   
-  // Format the response nicely
-  const urgencyEmoji = 
-    diagnosis.urgency === 'EMERGENCY' ? '🚨' :
-    diagnosis.urgency === 'URGENT' ? '⚠️' : '✅';
-  
-  // Extract explanation from full_response if it exists
-  let explanation = '';
-  try {
-    const parsedResponse = JSON.parse(diagnosis.full_response);
-    explanation = parsedResponse.full_response || parsedResponse.explanation || '';
-  } catch (e) {
-    // If full_response is not JSON, use it as is
-    explanation = diagnosis.full_response;
-  }
-  
-  const replyText = `${urgencyEmoji} *Predicted Disease:*\n${diagnosis.predicted_disease}\n\n*Treatment:*\n${diagnosis.suggested_treatment}\n\n*Urgency Level:* ${diagnosis.urgency}${explanation ? `\n\n*Additional Information:*\n${explanation}` : ''}`;
-  
+
+const urgencyEmoji = 
+  diagnosis.urgency === 'EMERGENCY' ? '🚨' :
+  diagnosis.urgency === 'URGENT' ? '⚠️' : '✅';
+let explanationText = '';
+try {
+  const parsedResponse = JSON.parse(diagnosis.full_response);
+  explanationText = parsedResponse.full_response || '';
+} catch (e) {
+  console.log('Could not parse full_response');
+}
+const replyText = `${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${explanationText}` : ''}`;  
   const botMessage: Message = { 
     id: (Date.now() + 1).toString(), 
     sender: 'bot', 
@@ -165,7 +161,7 @@ const [userGender, setUserGender] = useState<string>('');
   };
   setMessages(prev => [...prev, botMessage]);
 } catch (error) {
-  // Show Error meessage to userss
+ 
   const errorMessage: Message = {
     id: (Date.now() + 1).toString(),
     sender: 'bot',
@@ -268,7 +264,35 @@ const [userGender, setUserGender] = useState<string>('');
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
+{/* Age and Gender Inputs */}
+        {messages.length === 0 && (
+          <View style={styles.userInfoRow}>
+            <View style={styles.infoInputWrapper}>
+              <Text style={styles.infoLabel}>Age</Text>
+              <TextInput
+                style={styles.infoInput}
+                placeholder="25"
+                placeholderTextColor="#9CA3AF"
+                value={userAge}
+                onChangeText={setUserAge}
+                keyboardType="numeric"
+                maxLength={3}
+              />
+            </View>
+            <View style={styles.infoInputWrapper}>
+              <Text style={styles.infoLabel}>Gender</Text>
+              <TextInput
+                style={styles.infoInput}
+                placeholder="Male/Female"
+                placeholderTextColor="#9CA3AF"
+                value={userGender}
+                onChangeText={setUserGender}
+              />
+            </View>
+          </View>
+        )}
 
+        
         {/* Input */}
         <View style={styles.inputRow}>
           <View style={styles.inputWrapper}>
@@ -333,4 +357,32 @@ const styles = StyleSheet.create({
   input: { flex: 1, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: COLORS.textDark },
   sendBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.gradientEnd, justifyContent: 'center', alignItems: 'center', marginRight: 4 },
   sendArrow: { color: '#FFF', fontSize: 18, fontWeight: '600' },
+  userInfoRow: { 
+    flexDirection: 'row', 
+    paddingHorizontal: 16, 
+    paddingBottom: 8, 
+    gap: 12 
+  },
+  infoInputWrapper: { 
+    flex: 1, 
+    backgroundColor: COLORS.inputBg, 
+    borderRadius: 12, 
+    padding: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3
+  },
+  infoLabel: { 
+    fontSize: 12, 
+    color: '#666', 
+    marginBottom: 4, 
+    fontWeight: '500' 
+  },
+  infoInput: { 
+    fontSize: 14, 
+    color: COLORS.textDark, 
+    padding: 0 
+  },
 });
