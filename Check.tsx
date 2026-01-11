@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+
 // ---------------------- Constants ----------------------
 const COLORS = {
   gradientStart: '#00C4B4',
@@ -47,9 +48,30 @@ interface CheckProps {
 }
 
 // ---------------------- Backend Placeholder ----------------------
-async function sendMessageToBackend(userText: string): Promise<string> {
-  // TODO: Replace this with your real API call
-  return `AI Response for "${userText}" (mock backend)`;
+async function sendMessageToBackend(userText: string): Promise<any> {
+  try {
+    const response = await fetch(`${'http://192.168.1.74:8000/diagnosis'}/check`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        symptoms: [userText], 
+        age: 25,            
+        gender: "Male"        
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Backend API Error:', error);
+    throw error;
+  }
 }
 
 // ---------------------- Check Component ----------------------
@@ -60,6 +82,8 @@ const Check = ({ onBackToLanding }: CheckProps) => {
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showPreChat, setShowPreChat] = useState(true);
+  const [userAge, setUserAge] = useState<string>('');
+const [userGender, setUserGender] = useState<string>('');
 
   // ---------------------- Refs & Animations ----------------------
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -114,13 +138,43 @@ const Check = ({ onBackToLanding }: CheckProps) => {
     setInput('');
     setIsSending(true);
 
-    try {
-      const replyText = await sendMessageToBackend(trimmed);
-      const botMessage: Message = { id: (Date.now() + 1).toString(), sender: 'bot', text: replyText };
-      setMessages(prev => [...prev, botMessage]);
-    } finally {
-      setIsSending(false);
-    }
+   try {
+  const diagnosis = await sendMessageToBackend(trimmed);
+  
+  // Format the response nicely
+  const urgencyEmoji = 
+    diagnosis.urgency === 'EMERGENCY' ? '🚨' :
+    diagnosis.urgency === 'URGENT' ? '⚠️' : '✅';
+  
+  // Extract explanation from full_response if it exists
+  let explanation = '';
+  try {
+    const parsedResponse = JSON.parse(diagnosis.full_response);
+    explanation = parsedResponse.full_response || parsedResponse.explanation || '';
+  } catch (e) {
+    // If full_response is not JSON, use it as is
+    explanation = diagnosis.full_response;
+  }
+  
+  const replyText = `${urgencyEmoji} *Predicted Disease:*\n${diagnosis.predicted_disease}\n\n*Treatment:*\n${diagnosis.suggested_treatment}\n\n*Urgency Level:* ${diagnosis.urgency}${explanation ? `\n\n*Additional Information:*\n${explanation}` : ''}`;
+  
+  const botMessage: Message = { 
+    id: (Date.now() + 1).toString(), 
+    sender: 'bot', 
+    text: replyText 
+  };
+  setMessages(prev => [...prev, botMessage]);
+} catch (error) {
+  // Show Error meessage to userss
+  const errorMessage: Message = {
+    id: (Date.now() + 1).toString(),
+    sender: 'bot',
+    text: '❌ Sorry, I encountered an error. Please check your connection and try again.'
+  };
+  setMessages(prev => [...prev, errorMessage]);
+} finally {
+  setIsSending(false);
+}
   };
 
   const onInputChange = (text: string) => setInput(text);
