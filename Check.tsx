@@ -153,7 +153,7 @@ try {
 } catch (e) {
   console.log('Could not parse full_response');
 }
-const replyText = `${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${explanationText}` : ''}`;  
+const replyText = `Symptoms:${diagnosis.symptoms}\n\n ${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${explanationText}` : ''}`;  
   const botMessage: Message = { 
     id: (Date.now() + 1).toString(), 
     sender: 'bot', 
