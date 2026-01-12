@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   TouchableOpacity,
@@ -15,7 +14,7 @@ import {
   Modal,
   Image,
 } from 'react-native';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // I keep screen width here so layout and drawer width can adapt on any device
 const { width } = Dimensions.get('window');
