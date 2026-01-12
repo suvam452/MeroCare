@@ -97,7 +97,7 @@ Gender: {data.gender}
         id=0, 
         predicted_disease=parsed.get("predicted_disease", "Unknown"),
         suggested_treatment=parsed.get("suggested_treatment", "Consult a healthcare professional"),
-        created_at=datetime.now(),
+        created_at=datetime.utcnow(),
         symptoms=", ".join(data.symptoms), 
         urgency=parsed.get("urgency", "ROUTINE"),
         full_response=raw_text

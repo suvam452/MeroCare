@@ -50,7 +50,7 @@ interface CheckProps {
 // ---------------------- Backend Placeholder ----------------------
 async function sendMessageToBackend(userText: string, age?: number, gender?: string): Promise<any> {
   try {
-    const response = await fetch(`${'http://192.168.1.74:8000/diagnosis'}/check`, {
+    const response = await fetch(`${'http://172.18.143.223:8000/diagnosis'}/check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ try {
 } catch (e) {
   console.log('Could not parse full_response');
 }
-const replyText = `Symptoms:${diagnosis.symptoms}\n\n ${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${explanationText}` : ''}`;  
+const replyText = `Symptoms:${diagnosis.symptoms}\n\n ${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${explanationText}` : ''}\n\n Date:${diagnosis.created_at}`;  
   const botMessage: Message = { 
     id: (Date.now() + 1).toString(), 
     sender: 'bot', 
