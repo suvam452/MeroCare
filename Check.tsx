@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { diagnosisService } from './src/services/diagnosisService';
+
 // ---------------------- Constants ----------------------
 const COLORS = {
   gradientStart: '#00C4B4',
@@ -48,9 +49,30 @@ interface CheckProps {
 }
 
 // ---------------------- Backend Placeholder ----------------------
-async function sendMessageToBackend(userText: string): Promise<string> {
-  // TODO: Replace this with your real API call
-  return `AI Response for "${userText}" (mock backend)`;
+async function sendMessageToBackend(userText: string, age?: number, gender?: string): Promise<any> {
+  try {
+    const response = await fetch(`${'http://192.168.1.74:8000/diagnosis'}/check`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+     body: JSON.stringify({
+  symptoms: [userText], 
+  age: age || 25,            
+  gender: gender || "Not specified"        
+}),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Backend API Error:', error);
+    throw error;
+  }
 }
 
 // ---------------------- Check Component ----------------------
@@ -61,6 +83,8 @@ const Check = ({ onBackToLanding }: CheckProps) => {
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showPreChat, setShowPreChat] = useState(true);
+  const [userAge, setUserAge] = useState<string>('');
+const [userGender, setUserGender] = useState<string>('');
 
   // ---------------------- Refs & Animations ----------------------
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -115,13 +139,39 @@ const Check = ({ onBackToLanding }: CheckProps) => {
     setInput('');
     setIsSending(true);
 
-    try {
-      const replyText = await sendMessageToBackend(trimmed);
-      const botMessage: Message = { id: (Date.now() + 1).toString(), sender: 'bot', text: replyText };
-      setMessages(prev => [...prev, botMessage]);
-    } finally {
-      setIsSending(false);
-    }
+   try {
+  const diagnosis = await sendMessageToBackend(trimmed, userAge ? parseInt(userAge) : undefined,
+  userGender || undefined);
+  
+
+const urgencyEmoji = 
+  diagnosis.urgency === 'EMERGENCY' ? '🚨' :
+  diagnosis.urgency === 'URGENT' ? '⚠️' : '✅';
+let explanationText = '';
+try {
+  const parsedResponse = JSON.parse(diagnosis.full_response);
+  explanationText = parsedResponse.full_response || '';
+} catch (e) {
+  console.log('Could not parse full_response');
+}
+const replyText = `Symptoms:${diagnosis.symptoms}\n\n ${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${explanationText}` : ''}`;  
+  const botMessage: Message = { 
+    id: (Date.now() + 1).toString(), 
+    sender: 'bot', 
+    text: replyText 
+  };
+  setMessages(prev => [...prev, botMessage]);
+} catch (error) {
+ 
+  const errorMessage: Message = {
+    id: (Date.now() + 1).toString(),
+    sender: 'bot',
+    text: '❌ Sorry, I encountered an error. Please check your connection and try again.'
+  };
+  setMessages(prev => [...prev, errorMessage]);
+} finally {
+  setIsSending(false);
+}
   };
 
   const onInputChange = (text: string) => setInput(text);
@@ -215,7 +265,35 @@ const Check = ({ onBackToLanding }: CheckProps) => {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
+{/* Age and Gender Inputs */}
+        {messages.length === 0 && (
+          <View style={styles.userInfoRow}>
+            <View style={styles.infoInputWrapper}>
+              <Text style={styles.infoLabel}>Age</Text>
+              <TextInput
+                style={styles.infoInput}
+                placeholder="25"
+                placeholderTextColor="#9CA3AF"
+                value={userAge}
+                onChangeText={setUserAge}
+                keyboardType="numeric"
+                maxLength={3}
+              />
+            </View>
+            <View style={styles.infoInputWrapper}>
+              <Text style={styles.infoLabel}>Gender</Text>
+              <TextInput
+                style={styles.infoInput}
+                placeholder="Male/Female"
+                placeholderTextColor="#9CA3AF"
+                value={userGender}
+                onChangeText={setUserGender}
+              />
+            </View>
+          </View>
+        )}
 
+        
         {/* Input */}
         <View style={styles.inputRow}>
           <View style={styles.inputWrapper}>
@@ -280,4 +358,32 @@ const styles = StyleSheet.create({
   input: { flex: 1, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: COLORS.textDark },
   sendBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.gradientEnd, justifyContent: 'center', alignItems: 'center', marginRight: 4 },
   sendArrow: { color: '#FFF', fontSize: 18, fontWeight: '600' },
+  userInfoRow: { 
+    flexDirection: 'row', 
+    paddingHorizontal: 16, 
+    paddingBottom: 8, 
+    gap: 12 
+  },
+  infoInputWrapper: { 
+    flex: 1, 
+    backgroundColor: COLORS.inputBg, 
+    borderRadius: 12, 
+    padding: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3
+  },
+  infoLabel: { 
+    fontSize: 12, 
+    color: '#666', 
+    marginBottom: 4, 
+    fontWeight: '500' 
+  },
+  infoInput: { 
+    fontSize: 14, 
+    color: COLORS.textDark, 
+    padding: 0 
+  },
 });

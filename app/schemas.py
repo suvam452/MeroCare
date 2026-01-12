@@ -12,8 +12,7 @@ class TokenData(BaseModel):
 class UserBase(BaseModel):
     email:EmailStr
     full_name:str
-    mobile_number:str
-    address:Optional[str]=None
+  
     blood_group:Optional[str]=None
     dob:Optional[date]=None
 
