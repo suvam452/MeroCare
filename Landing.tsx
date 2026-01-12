@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   TouchableOpacity,
@@ -15,7 +14,7 @@ import {
   Modal,
   Image,
 } from 'react-native';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // I keep screen width here so layout and drawer width can adapt on any device
 const { width } = Dimensions.get('window');
@@ -389,9 +388,7 @@ const Landing = ({
                   </Text>
                 </TouchableOpacity>
                 <View>
-                  <Text style={styles.profileName}>{userName}</Text>
-                  {/* static number placeholder – backend can replace with real phone */}
-                  <Text style={styles.profilePhone}>9840000000</Text>
+                  <Text style={styles.profileName}>{userName}</Text>                  
                 </View>
                 {/* close icon to dismiss drawer */}
                 <TouchableOpacity

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  SafeAreaView,
   Alert,
   Modal,
+  ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import api from './src/services/api'
 
 // three modes controlled from Landing drawer
 type Mode = 'about' | 'edit' | 'password';
@@ -25,16 +27,15 @@ const phoneRegex = /^[0-9]{10}$/;
 const bloodGroupRegex = /^(A|B|AB|O)[+-]$/i;
 
 const NewBar = ({ mode, onBack }: NewBarProps) => {
-  // local profile state – in real app this should come from backend/user store
-  const [name, setName] = useState('User');
-  const [email, setEmail] = useState('user@gmail.com');
-  const [phone, setPhone] = useState('9840000000');
-  const [bloodGroup, setBloodGroup] = useState('O+');
-  const [address, setAddress] = useState('Kathmandu, Nepal');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [bloodGroup, setBloodGroup] = useState('');
+  const [address, setAddress] = useState('');
 
   // Birth of Date – string for now, can be wired to date picker later
-  const [birthOfDate, setBirthOfDate] = useState('2000-01-01');
-
+  const [birthOfDate, setBirthOfDate] = useState('');
+  const [isLoading,setIsLoading]=useState(false);
   // change photo modal (only UI, no backend yet)
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
 
@@ -55,6 +56,29 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
     newPassword?: string;
     confirmPassword?: string;
   }>({});
+
+  useEffect(()=>{
+    fetchUserProfile();
+  },[]);
+
+  const fetchUserProfile=async()=>{
+    setIsLoading(true);
+    try{
+      const response=await api.get('/users/me');
+      const data=response.data;
+      setName(data.full_name||'');
+      setEmail(data.email||'');
+      setPhone(data.mobile_number||'');
+      setAddress(data.address||'');
+      setBloodGroup(data.blood_group||'');
+      setBirthOfDate(data.dob||'');
+    }catch(error){
+      console.error("Fetch Profile Error:",error);
+      Alert.alert("Error","Could not load profile.");
+    }finally{
+      setIsLoading(false);
+    }
+  };
 
   // validate basic profile fields before sending update to backend
   const validateProfile = () => {
@@ -89,7 +113,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
 
     if (!oldPassword) newErrors.oldPassword = 'Old password is required';
     if (!newPassword) newErrors.newPassword = 'New password is required';
-    else if (newPassword.length < 6) newErrors.newPassword = 'At least 6 characters';
+    else if (newPassword.length < 8) newErrors.newPassword = 'At least 8 characters';
 
     if (!confirmPassword) newErrors.confirmPassword = 'Please confirm password';
     else if (newPassword !== confirmPassword)
@@ -99,53 +123,57 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // profile save hook – ready for backend integration
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async() => {
     if (!validateProfile()) return;
-
-    /**
-     * BACKEND INTEGRATION – UPDATE PROFILE
-     *
-     * API: PUT /user/profile
-     * Body:
-     * {
-     *   name,
-     *   email,
-     *   phone,
-     *   bloodGroup,
-     *   address,
-     *   birthOfDate,
-     * }
-     *
-     * On success:
-     * - show success message
-     * - update global user state if you are using context/store
-     */
-    Alert.alert('Success', 'Profile updated successfully');
-    onBack();
+    setIsLoading(true);
+    try{
+      const payload={
+        full_name:name,
+        email:email,
+        mobile_number:phone,
+        blood_group:bloodGroup,
+        address:address,
+        dob:birthOfDate
+      };
+      await api.put('/users/me',payload);
+      Alert.alert('Success', 'Profile updated successfully');
+      await fetchUserProfile();
+      onBack();
+    }catch(error:any){
+      console.error(error);
+      const msg=error.response?.data?.detail||"Update failed.";
+      Alert.alert("Error",msg);
+    }finally{
+      setIsLoading(false);
+    }
   };
 
-  // password change hook – ready for backend integration
-  const handleChangePassword = () => {
+  const handleChangePassword = async() => {
     if (!validatePassword()) return;
-
-    /**
-     * BACKEND INTEGRATION – CHANGE PASSWORD
-     *
-     * API: POST /user/change-password
-     * Body:
-     * {
-     *   oldPassword,
-     *   newPassword,
-     * }
-     *
-     * On success:
-     * - clear local password fields
-     * - maybe force re-login depending on security policy
-     */
-    Alert.alert('Success', 'Password changed successfully');
-    onBack();
+    setIsLoading(true);
+    try{
+      await api.post('/users/change_password',{old_password:oldPassword,new_password:newPassword});
+      Alert.alert('Success', 'Password changed successfully');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      onBack();
+    }catch(error:any){
+      console.error(error);
+      const msg=error.response?.data?.detail||"Password change failed.";
+      Alert.alert("Error:",msg);
+    }finally{
+      setIsLoading(false);
+    }
   };
+  
+  if(isLoading && mode ==='about'){
+    return(
+      <View style={[styles.container, {justifyContent:'center', alignItems:'center'}]}>
+        <ActivityIndicator size="large" color="#255E67" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -161,7 +189,9 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
             ? 'Edit Details'
             : 'Change Password'}
         </Text>
-        <View style={{ width: 50 }} />
+        <View style={{ width: 50 }}>
+          {isLoading && mode !== 'about' && <ActivityIndicator color="#255E67"/>}
+        </View>
       </View>
 
       <ScrollView

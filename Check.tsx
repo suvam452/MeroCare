@@ -1,7 +1,6 @@
 // Check.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   TouchableOpacity,
@@ -15,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ---------------------- Constants ----------------------
 const COLORS = {

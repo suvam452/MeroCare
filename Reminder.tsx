@@ -1,7 +1,6 @@
 // Reminder.tsx
 import React, { useMemo, useState } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   Switch,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const THEME_COLOR = '#255E67';
 const TEXT_COLOR = '#133D2E';
