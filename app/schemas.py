@@ -25,9 +25,26 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id:int
+    mobile_number:Optional[str]=None
+    address:Optional[str]=None
+    blood_group:Optional[str]=None
+    dob:Optional[date]=None
+    gender:Optional[str]=None
 
     class Config:
         from_attributes=True
+
+class UserUpdate(BaseModel):
+    full_name:Optional[str]=None
+    mobile_number:Optional[str]=None
+    address:Optional[str]=None
+    blood_group:Optional[str]=None
+    dob:Optional[date]=None
+    gender:Optional[str]=None
+
+class UserPasswordChange(BaseModel):
+    old_password:str
+    new_password:str
 
 class SymptomInput(BaseModel):
     symptoms:List[str]

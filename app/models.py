@@ -15,6 +15,8 @@ class User(Base):
     dob=Column(Date,nullable=True)
     gender=Column(String(10),nullable=True)
     blood_group=Column(String(5),nullable=True)
+    mobile_number=Column(String(20),nullable=True)
+    address=Column(String(255),nullable=True)
 
     @property
     def age(self):
