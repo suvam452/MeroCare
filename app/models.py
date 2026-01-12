@@ -30,11 +30,9 @@ class Diagnosis(Base):
     id=Column(Integer,primary_key=True,index=True)
     user_id=Column(Integer,ForeignKey("UserInfo.id"))
     owner=relationship("User",back_populates="diagnoses")
-    symptoms=Column(Text,nullable=False)
-    predicted_disease=Column(String(150),nullable=False)
-    treatment_advice=Column(Text,nullable=True)
-    urgency=Column(String(50))
+    user_diagnosis=Column(Text,nullable=True)
     created_at=Column(DateTime(timezone=True),server_default=func.now())
+    visibility=Column(String(10),default="public")
 
 class HealthTip(Base):
     __tablename__="HealthTips"

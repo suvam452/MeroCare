@@ -388,9 +388,7 @@ const Landing = ({
                   </Text>
                 </TouchableOpacity>
                 <View>
-                  <Text style={styles.profileName}>{userName}</Text>
-                  {/* static number placeholder – backend can replace with real phone */}
-                  <Text style={styles.profilePhone}>9840000000</Text>
+                  <Text style={styles.profileName}>{userName}</Text>                  
                 </View>
                 {/* close icon to dismiss drawer */}
                 <TouchableOpacity

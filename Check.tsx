@@ -15,7 +15,6 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-//import { diagnosisService } from './src/services/diagnosisService';
 
 // ---------------------- Constants ----------------------
 const COLORS = {
