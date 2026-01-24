@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useRef} from 'react';
 import {
   View,
   Text,
@@ -112,9 +112,9 @@ export default function LoginScreen({
   >({});
   const [loading, setLoading] = useState(false);
 
-  const buttonScale = useState(new Animated.Value(1))[0];
-  const heroScale = useState(new Animated.Value(1))[0];
-  const heroTranslateY = useState(new Animated.Value(0))[0];
+  const buttonScale = useRef(new Animated.Value(1)).current;
+  const heroScale = useRef(new Animated.Value(1)).current;
+  const heroTranslateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
@@ -215,7 +215,6 @@ export default function LoginScreen({
 
     Alert.alert('Success', `Password reset link sent to ${email}`);
   };
-
   const onPressIn = () => {
     Animated.spring(buttonScale, {
       toValue: 0.97,

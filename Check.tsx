@@ -1,5 +1,7 @@
 // Check.tsx
 import React, { useEffect, useRef, useState } from 'react';
+import RNFS from 'react-native-fs';
+import RNShare from 'react-native-share';
 import {
   View,
   Text,
@@ -13,8 +15,12 @@ import {
   Easing,
   KeyboardAvoidingView,
   Platform,
+  Linking,    
+  PermissionsAndroid,
+  Alert,  
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 // ---------------------- Constants ----------------------
 const COLORS = {
@@ -50,7 +56,7 @@ interface CheckProps {
 // ---------------------- Backend Placeholder ----------------------
 async function sendMessageToBackend(userText: string, age?: number, gender?: string): Promise<any> {
   try {
-    const response = await fetch(`${'http://172.18.143.223:8000/diagnosis'}/check`, {
+     const response = await fetch(`${'http://172.18.142.30:8000/diagnosis'}/check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -73,6 +79,20 @@ async function sendMessageToBackend(userText: string, age?: number, gender?: str
     throw error;
   }
 }
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  
+  const options: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  };
+  
+  return date.toLocaleString('en-US', options);
+};
 
 // ---------------------- Check Component ----------------------
 const Check = ({ onBackToLanding }: CheckProps) => {
@@ -97,27 +117,39 @@ const [userGender, setUserGender] = useState<string>('');
   const examples = ['Tooth pain', 'Fever & headache', 'Stomach ache', 'Skin rash'];
 
   // ---------------------- Animations ----------------------
-  useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
+useEffect(() => {
+  // Fade animation runs once regardless
+  Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
 
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(iconFloat, { toValue: -8, duration: ANIMATION.iconFloatDuration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(iconFloat, { toValue: 0, duration: ANIMATION.iconFloatDuration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ])
-    ).start();
+  // Only run looping animations on intro screen
+  if (step !== 'intro') return;
 
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(dot1, { toValue: 1, duration: ANIMATION.dotDuration, useNativeDriver: true }),
-        Animated.timing(dot2, { toValue: 1, duration: ANIMATION.dotDuration, useNativeDriver: true }),
-        Animated.timing(dot3, { toValue: 1, duration: ANIMATION.dotDuration, useNativeDriver: true }),
-        Animated.timing(dot1, { toValue: 0.2, duration: ANIMATION.dotDuration, useNativeDriver: true }),
-        Animated.timing(dot2, { toValue: 0.2, duration: ANIMATION.dotDuration, useNativeDriver: true }),
-        Animated.timing(dot3, { toValue: 0.2, duration: ANIMATION.dotDuration, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
+  const floatAnimation = Animated.loop(
+    Animated.sequence([
+      Animated.timing(iconFloat, { toValue: -8, duration: ANIMATION.iconFloatDuration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(iconFloat, { toValue: 0, duration: ANIMATION.iconFloatDuration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ])
+  );
+  floatAnimation.start();
+
+  const dotAnimation = Animated.loop(
+    Animated.sequence([
+      Animated.timing(dot1, { toValue: 1, duration: ANIMATION.dotDuration, useNativeDriver: true }),
+      Animated.timing(dot2, { toValue: 1, duration: ANIMATION.dotDuration, useNativeDriver: true }),
+      Animated.timing(dot3, { toValue: 1, duration: ANIMATION.dotDuration, useNativeDriver: true }),
+      Animated.timing(dot1, { toValue: 0.2, duration: ANIMATION.dotDuration, useNativeDriver: true }),
+      Animated.timing(dot2, { toValue: 0.2, duration: ANIMATION.dotDuration, useNativeDriver: true }),
+      Animated.timing(dot3, { toValue: 0.2, duration: ANIMATION.dotDuration, useNativeDriver: true }),
+    ])
+  );
+  dotAnimation.start();
+
+  // Cleanup: stop animations when component unmounts or step changes
+  return () => {
+    floatAnimation.stop();
+    dotAnimation.stop();
+  };
+}, [step]); // Add 'step' to dependency array
 
   // ---------------------- Auto-scroll ----------------------
   useEffect(() => {
@@ -127,7 +159,12 @@ const [userGender, setUserGender] = useState<string>('');
   }, [messages]);
 
   // ---------------------- Handlers ----------------------
-  const handleSend = async () => {
+  const handleSend = async () => 
+    {
+    if (userAge && (parseInt(userAge) < 0 || parseInt(userAge) > 120)) {
+    Alert.alert('Invalid Age', 'Please enter a valid age between 0-120');
+    return;
+    }
     const trimmed = input.trim();
     if (!trimmed || isSending) return;
 
@@ -153,7 +190,7 @@ try {
 } catch (e) {
   console.log('Could not parse full_response');
 }
-const replyText = `Symptoms:${diagnosis.symptoms}\n\n ${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${explanationText}` : ''}\n\n Date:${diagnosis.created_at}`;  
+const replyText = `Symptoms:${diagnosis.symptoms}\n\n ${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${diagnosis.fullresponse}${explanationText}` : ''}\n\n📅 ${formatDateTime(diagnosis.created_at)}`;  
   const botMessage: Message = { 
     id: (Date.now() + 1).toString(), 
     sender: 'bot', 
@@ -180,17 +217,103 @@ const replyText = `Symptoms:${diagnosis.symptoms}\n\n ${urgencyEmoji} Predicted 
     setShowPreChat(false);
     setTimeout(() => inputRef.current?.focus?.(), 150);
   };
+  
+const handleEmail = (diagnosisText: string) => {
+  const subject = 'My Mero-Care Diagnosis';
+  const body = diagnosisText;
+  const emailUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  
+  Linking.openURL(emailUrl).catch(err => {
+    console.error('Failed to open email client:', err);
+    Alert.alert('Error', 'Could not open email client');
+  });
+};
 
-  const renderMessage = ({ item }: { item: Message }) => {
-    const isUser = item.sender === 'user';
-    return (
-      <Animated.View style={[styles.messageRow, { justifyContent: isUser ? 'flex-end' : 'flex-start', opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0,1], outputRange: [10,0] }) }] }]}>
-        <View style={[styles.bubble, isUser ? styles.userBubble : styles.botBubble]}>
-          <Text style={isUser ? styles.userText : styles.botText}>{item.text}</Text>
-        </View>
-      </Animated.View>
+const handleSave = async (diagnosisText: string) => {
+  // For now, just show a confirmation since AsyncStorage needs setup
+  Alert.alert('Success', 'Diagnosis saved successfully!', [
+    {
+      text: 'OK',
+      onPress: () => console.log('Saved:', diagnosisText)
+    }
+  ]);
+};
+
+const handleDownload = async (diagnosisText: string) => {
+  try {
+    // Create filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `MeroCare_Diagnosis_${timestamp}.txt`;
+    
+    // Path to save file (Downloads folder on Android)
+    const path = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+    
+    // Write file
+    await RNFS.writeFile(path, diagnosisText, 'utf8');
+    
+    Alert.alert(
+      'Success!', 
+      `Diagnosis saved to Downloads folder as:\n${fileName}`,
+      [
+        { text: 'OK' },
+        { 
+          text: 'Share', 
+          onPress: () => shareSavedFile(path)
+        }
+      ]
     );
-  };
+  } catch (error) {
+    console.error('Failed to download diagnosis:', error);
+    Alert.alert('Error', 'Failed to save file to device');
+  }
+};
+
+
+
+// Helper function to share the saved file
+const shareSavedFile = async (filePath: string) => {
+  try {
+    await RNShare.open({
+      url: `file://${filePath}`,
+      title: 'Share Diagnosis',
+      subject: 'Mero-Care Diagnosis'
+    });
+  } catch (error) {
+    console.log('Share cancelled or failed:', error);
+  }
+};
+
+const renderMessage = ({ item }: { item: Message }) => {
+  const isUser = item.sender === 'user';
+  const isDiagnosis = item.sender === 'bot' && item.text.includes('Predicted Disease');
+  
+  return (
+    <Animated.View style={[styles.messageRow, { justifyContent: isUser ? 'flex-end' : 'flex-start', opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0,1], outputRange: [10,0] }) }] }]}>
+      <View style={[styles.bubble, isUser ? styles.userBubble : styles.botBubble]}>
+        <Text style={isUser ? styles.userText : styles.botText}>{item.text}</Text>
+        
+        {isDiagnosis && (
+          <View style={styles.diagnosisActions}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => handleEmail(item.text)}>
+              <Text style={{ fontSize: 16 }}>📧</Text>
+              <Text style={styles.actionButtonText}>Email</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionButton} onPress={() => handleSave(item.text)}>
+              <Text style={{ fontSize: 16 }}>💾</Text>
+              <Text style={styles.actionButtonText}>Save</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionButton} onPress={() => handleDownload(item.text)}>
+              <Text style={{ fontSize: 16 }}>⬇️</Text>
+              <Text style={styles.actionButtonText}>Download</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </Animated.View>
+  );
+};
 
   // ---------------------- Intro Page ----------------------
   if (step === 'intro') {
@@ -385,4 +508,109 @@ const styles = StyleSheet.create({
     color: COLORS.textDark, 
     padding: 0 
   },
+  saveButton: {
+  backgroundColor: COLORS.gradientEnd,
+  borderRadius: 12,
+  paddingVertical: 8,
+  paddingHorizontal: 16,
+  marginTop: 8,
+  alignSelf: 'flex-start',
+},
+saveButtonText: {
+  color: '#FFF',
+  fontSize: 13,
+  fontWeight: '600',
+},
+modalOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 1000,
+},
+modalContent: {
+  backgroundColor: '#FFF',
+  borderRadius: 20,
+  padding: 24,
+  width: '85%',
+  maxWidth: 400,
+  shadowColor: '#000',
+  shadowOpacity: 0.25,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 12,
+  elevation: 5,
+},
+modalTitle: {
+  fontSize: 20,
+  fontWeight: '700',
+  color: COLORS.textDark,
+  marginBottom: 8,
+  textAlign: 'center',
+},
+modalSubtitle: {
+  fontSize: 14,
+  color: '#666',
+  marginBottom: 20,
+  textAlign: 'center',
+},
+modalButton: {
+  borderRadius: 12,
+  paddingVertical: 16,
+  paddingHorizontal: 20,
+  marginBottom: 12,
+},
+privateButton: {
+  backgroundColor: '#6B7280',
+},
+publicButton: {
+  backgroundColor: COLORS.gradientEnd,
+},
+modalButtonText: {
+  color: '#FFF',
+  fontSize: 16,
+  fontWeight: '600',
+  marginBottom: 4,
+  textAlign: 'center',
+},
+modalButtonSubtext: {
+  color: '#FFF',
+  fontSize: 12,
+  opacity: 0.9,
+  textAlign: 'center',
+},
+cancelButton: {
+  marginTop: 8,
+  paddingVertical: 12,
+},
+cancelButtonText: {
+  color: '#666',
+  fontSize: 14,
+  textAlign: 'center',
+},
+diagnosisActions: {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  marginTop: 12,
+  paddingTop: 12,
+  borderTopWidth: 1,
+  borderTopColor: '#E5E7EB',
+},
+actionButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: 8,
+  paddingHorizontal: 12,
+  borderRadius: 8,
+  backgroundColor: '#F3F4F6',
+},
+actionButtonText: {
+  fontSize: 12,
+  color: COLORS.textDark,
+  marginLeft: 4,
+  fontWeight: '500',
+},
 });
