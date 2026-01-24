@@ -267,7 +267,16 @@ const handleDownload = async (diagnosisText: string) => {
     Alert.alert('Error', 'Failed to save file to device');
   }
 };
-
+const handleQuickShare = async (diagnosisText: string) => {
+  try {
+    await RNShare.open({
+      message: diagnosisText,
+      title: 'My Mero-Care Diagnosis',
+    });
+  } catch (error) {
+    console.log('Share cancelled or failed');
+  }
+};
 
 
 // Helper function to share the saved file
@@ -300,13 +309,17 @@ const renderMessage = ({ item }: { item: Message }) => {
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={() => handleSave(item.text)}>
-              <Text style={{ fontSize: 16 }}>💾</Text>
-              <Text style={styles.actionButtonText}>Save</Text>
+              <Text style={{ fontSize: 16 }}>➕</Text>
+              <Text style={styles.actionButtonText}>Add History</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={() => handleDownload(item.text)}>
               <Text style={{ fontSize: 16 }}>⬇️</Text>
               <Text style={styles.actionButtonText}>Download</Text>
+            </TouchableOpacity>
+             <TouchableOpacity style={styles.actionButton} onPress={() => handleQuickShare(item.text)}>
+              <Text style={{ fontSize: 16 }}>📤</Text>
+              <Text style={styles.actionButtonText}>Share</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -598,6 +611,8 @@ diagnosisActions: {
   paddingTop: 12,
   borderTopWidth: 1,
   borderTopColor: '#E5E7EB',
+    flexWrap: 'wrap', 
+  gap: 8, 
 },
 actionButton: {
   flexDirection: 'row',
@@ -613,4 +628,5 @@ actionButtonText: {
   marginLeft: 4,
   fontWeight: '500',
 },
+
 });
