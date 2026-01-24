@@ -63,6 +63,11 @@ class Diagnosis(BaseModel):
     class Config:
         from_attributes=True
 
+class SaveHistoryRequest(BaseModel):
+    user_diagnosis: str
+    visibility: str
+    created_at: str
+    
 class CreateMedicalRecord(BaseModel):
     illness:str
     doctor_name:Optional[str]

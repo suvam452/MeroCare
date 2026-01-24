@@ -56,7 +56,7 @@ interface CheckProps {
 // ---------------------- Backend Placeholder ----------------------
 async function sendMessageToBackend(userText: string, age?: number, gender?: string): Promise<any> {
   try {
-     const response = await fetch(`${'http://172.18.142.30:8000/diagnosis'}/check`, {
+     const response = await fetch(`${'http://192.168.1.70:8000/diagnosis'}/check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -104,6 +104,8 @@ const Check = ({ onBackToLanding }: CheckProps) => {
   const [showPreChat, setShowPreChat] = useState(true);
   const [userAge, setUserAge] = useState<string>('');
 const [userGender, setUserGender] = useState<string>('');
+const [showVisibilityModal, setShowVisibilityModal] = useState(false);
+const [selectedDiagnosis, setSelectedDiagnosis] = useState<string>('');
 
   // ---------------------- Refs & Animations ----------------------
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -190,7 +192,7 @@ try {
 } catch (e) {
   console.log('Could not parse full_response');
 }
-const replyText = `Symptoms:${diagnosis.symptoms}\n\n ${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${diagnosis.fullresponse}${explanationText}` : ''}\n\n📅 ${formatDateTime(diagnosis.created_at)}`;  
+const replyText = `Symptoms:${diagnosis.symptoms}\n\n ${urgencyEmoji} Predicted Disease: ${diagnosis.predicted_disease}\n\nTreatment: ${diagnosis.suggested_treatment}\n\nUrgency Level: ${diagnosis.urgency}${explanationText ? `\n\n📋 Additional Information:\n${diagnosis.fullresponse}${explanationText}` : ''}`;  
   const botMessage: Message = { 
     id: (Date.now() + 1).toString(), 
     sender: 'bot', 
@@ -229,14 +231,9 @@ const handleEmail = (diagnosisText: string) => {
   });
 };
 
-const handleSave = async (diagnosisText: string) => {
-  // For now, just show a confirmation since AsyncStorage needs setup
-  Alert.alert('Success', 'Diagnosis saved successfully!', [
-    {
-      text: 'OK',
-      onPress: () => console.log('Saved:', diagnosisText)
-    }
-  ]);
+const handleAdd = async (diagnosisText: string) => {
+  setSelectedDiagnosis(diagnosisText);
+  setShowVisibilityModal(true);
 };
 
 const handleDownload = async (diagnosisText: string) => {
@@ -277,7 +274,30 @@ const handleQuickShare = async (diagnosisText: string) => {
     console.log('Share cancelled or failed');
   }
 };
+const saveToHistory = async (visibility: 'public' | 'private') => {
+  try {
+    const response = await fetch('http://192.168.1.70:8000/diagnosis/save-history', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_diagnosis: selectedDiagnosis,
+        visibility: visibility,
+        created_at: new Date().toISOString()
+      }),
+    });
 
+    if (response.ok) {
+      Alert.alert('Success!', 'Diagnosis saved to history');
+      setShowVisibilityModal(false);
+    } else {
+      Alert.alert('Error', 'Failed to save diagnosis');
+    }
+  } catch (error) {
+    Alert.alert('Error', 'Could not save to history');
+  }
+};
 
 // Helper function to share the saved file
 const shareSavedFile = async (filePath: string) => {
@@ -304,21 +324,21 @@ const renderMessage = ({ item }: { item: Message }) => {
         {isDiagnosis && (
           <View style={styles.diagnosisActions}>
             <TouchableOpacity style={styles.actionButton} onPress={() => handleEmail(item.text)}>
-              <Text style={{ fontSize: 16 }}>📧</Text>
+              <Text style={{ fontSize: 14 }}>📧</Text>
               <Text style={styles.actionButtonText}>Email</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton} onPress={() => handleSave(item.text)}>
-              <Text style={{ fontSize: 16 }}>➕</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={() => handleAdd(item.text)}>
+              <Text style={{ fontSize: 14 }}>➕</Text>
               <Text style={styles.actionButtonText}>Add History</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.actionButton} onPress={() => handleDownload(item.text)}>
-              <Text style={{ fontSize: 16 }}>⬇️</Text>
+              <Text style={{ fontSize: 14 }}>⬇️</Text>
               <Text style={styles.actionButtonText}>Download</Text>
             </TouchableOpacity>
              <TouchableOpacity style={styles.actionButton} onPress={() => handleQuickShare(item.text)}>
-              <Text style={{ fontSize: 16 }}>📤</Text>
+              <Text style={{ fontSize: 14 }}>📤</Text>
               <Text style={styles.actionButtonText}>Share</Text>
             </TouchableOpacity>
           </View>
@@ -446,9 +466,45 @@ const renderMessage = ({ item }: { item: Message }) => {
             </TouchableOpacity>
           </View>
         </View>
+{/* Visibility Modal */}
+{showVisibilityModal && (
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Save to History</Text>
+      <Text style={styles.modalSubtitle}>Choose visibility for this diagnosis</Text>
+      
+      <TouchableOpacity 
+        style={[styles.modalButton, styles.privateButton]} 
+        onPress={() => saveToHistory('private')}
+      >
+        <Text style={styles.modalButtonText}>🔒 Private</Text>
+        <Text style={styles.modalButtonSubtext}>Only you can see this</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={[styles.modalButton, styles.publicButton]} 
+        onPress={() => saveToHistory('public')}
+      >
+        <Text style={styles.modalButtonText}>🌐 Public</Text>
+        <Text style={styles.modalButtonSubtext}>Visible to everyone</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.cancelButton} 
+        onPress={() => {
+          setShowVisibilityModal(false);
+          setSelectedDiagnosis('');
+        }}
+      >
+        <Text style={styles.cancelButtonText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
+  
 };
 
 export default Check;

@@ -1,14 +1,16 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from groq import Groq
 import os
 import json
 import re
-from app.schemas import SymptomInput , Diagnosis
+from app.schemas import SymptomInput , Diagnosis, SaveHistoryRequest
 from datetime import datetime
-
-
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models import Diagnosis as DiagnosisModel
+import pytz
 load_dotenv()
 
 
@@ -107,3 +109,40 @@ Gender: {data.gender}
 @router.get("/")
 def diagnosis_home():
     return {"message": "Diagnosis API is running!"}
+
+@router.post("/save-history")
+async def save_history(
+    request: SaveHistoryRequest,
+    db: Session = Depends(get_db)
+):
+    try:
+        # Parse as UTC time
+        utc_time = datetime.fromisoformat(request.created_at.replace('Z', '+00:00'))
+        
+        # Convert to Nepal timezone (UTC+5:45)
+        nepal_tz = pytz.timezone('Asia/Kathmandu')
+        nepal_time = utc_time.astimezone(nepal_tz)
+        
+        # Create new diagnosis record
+        new_diagnosis = DiagnosisModel(
+            user_id=None,
+            user_diagnosis=request.user_diagnosis,
+            created_at=nepal_time,
+            visibility=request.visibility
+        )
+        
+        db.add(new_diagnosis)
+        db.commit()
+        db.refresh(new_diagnosis)
+        
+        return {
+            "success": True,
+            "message": "Diagnosis saved to history",
+            "id": new_diagnosis.id
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error saving diagnosis: {str(e)}"
+        )
