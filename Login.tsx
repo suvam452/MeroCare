@@ -215,6 +215,7 @@ export default function LoginScreen({
 
     Alert.alert('Success', `Password reset link sent to ${email}`);
   };
+  
   const onPressIn = () => {
     Animated.spring(buttonScale, {
       toValue: 0.97,

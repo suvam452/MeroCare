@@ -56,7 +56,7 @@ interface CheckProps {
 // ---------------------- Backend Placeholder ----------------------
 async function sendMessageToBackend(userText: string, age?: number, gender?: string): Promise<any> {
   try {
-     const response = await fetch(`${'http://192.168.1.70:8000/diagnosis'}/check`, {
+     const response = await fetch(`${'http://172.18.141.168:8000/diagnosis'}/check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -120,10 +120,10 @@ const [selectedDiagnosis, setSelectedDiagnosis] = useState<string>('');
 
   // ---------------------- Animations ----------------------
 useEffect(() => {
-  // Fade animation runs once regardless
+
   Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
 
-  // Only run looping animations on intro screen
+  
   if (step !== 'intro') return;
 
   const floatAnimation = Animated.loop(
@@ -146,7 +146,7 @@ useEffect(() => {
   );
   dotAnimation.start();
 
-  // Cleanup: stop animations when component unmounts or step changes
+  
   return () => {
     floatAnimation.stop();
     dotAnimation.stop();
@@ -238,14 +238,14 @@ const handleAdd = async (diagnosisText: string) => {
 
 const handleDownload = async (diagnosisText: string) => {
   try {
-    // Create filename with timestamp
+  
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `MeroCare_Diagnosis_${timestamp}.txt`;
     
-    // Path to save file (Downloads folder on Android)
+    
     const path = `${RNFS.DownloadDirectoryPath}/${fileName}`;
     
-    // Write file
+    
     await RNFS.writeFile(path, diagnosisText, 'utf8');
     
     Alert.alert(
@@ -276,7 +276,7 @@ const handleQuickShare = async (diagnosisText: string) => {
 };
 const saveToHistory = async (visibility: 'public' | 'private') => {
   try {
-    const response = await fetch('http://192.168.1.70:8000/diagnosis/save-history', {
+    const response = await fetch('http://172.18.141.168:8000/diagnosis/save-history', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -299,7 +299,7 @@ const saveToHistory = async (visibility: 'public' | 'private') => {
   }
 };
 
-// Helper function to share the saved file
+
 const shareSavedFile = async (filePath: string) => {
   try {
     await RNShare.open({
