@@ -56,7 +56,7 @@ interface CheckProps {
 // ---------------------- Backend Placeholder ----------------------
 async function sendMessageToBackend(userText: string, age?: number, gender?: string): Promise<any> {
   try {
-     const response = await fetch(`${'http://172.18.141.168:8000/diagnosis'}/check`, {
+     const response = await fetch(`${'http://192.168.1.70:8000/diagnosis'}/check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -276,7 +276,7 @@ const handleQuickShare = async (diagnosisText: string) => {
 };
 const saveToHistory = async (visibility: 'public' | 'private') => {
   try {
-    const response = await fetch('http://172.18.141.168:8000/diagnosis/save-history', {
+    const response = await fetch('http://192.168.1.70:8000/diagnosis/save-history', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

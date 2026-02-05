@@ -80,3 +80,15 @@ class MedicalRecordResponse(CreateMedicalRecord):
 
     class Config:
         from_attributes=True
+
+class DiagnosisHistoryResponse(BaseModel):
+    id: int
+    symptoms: str
+    diagnosis_result: str
+    treatment: str
+    urgency: str
+    visibility: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

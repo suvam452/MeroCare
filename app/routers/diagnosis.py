@@ -5,7 +5,7 @@ from groq import Groq
 import os
 import json
 import re
-from app.schemas import SymptomInput , Diagnosis, SaveHistoryRequest
+from app.schemas import SymptomInput , Diagnosis, SaveHistoryRequest, DiagnosisHistoryResponse
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -145,4 +145,81 @@ async def save_history(
         raise HTTPException(
             status_code=500,
             detail=f"Error saving diagnosis: {str(e)}"
+        )
+
+@router.get("/my", response_model=list[DiagnosisHistoryResponse])
+async def get_my_diagnosis_history(
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch all diagnosis history from the database ordered by most recent first
+    """
+    try:
+        diagnoses = db.query(DiagnosisModel).order_by(DiagnosisModel.created_at.desc()).all()
+        
+        # Transform database records to response format
+        result = []
+        for diagnosis in diagnoses:
+            result.append(DiagnosisHistoryResponse(
+                id=diagnosis.id,
+                symptoms=diagnosis.user_diagnosis or "No data available",
+                diagnosis_result="",  # Empty since everything is in user_diagnosis
+                treatment="",
+                urgency="ROUTINE",
+                visibility=diagnosis.visibility,
+                created_at=diagnosis.created_at
+            ))
+        
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching diagnosis history: {str(e)}"
+        )
+    
+
+@router.patch("/update-visibility/{diagnosis_id}")
+async def update_visibility(
+    diagnosis_id: int,
+    visibility: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Update the visibility of a diagnosis record
+    """
+    try:
+        # Validate visibility value
+        if visibility not in ['private', 'public']:
+            raise HTTPException(
+                status_code=400,
+                detail="Visibility must be either 'private' or 'public'"
+            )
+        
+        # Find the diagnosis record
+        diagnosis = db.query(DiagnosisModel).filter(DiagnosisModel.id == diagnosis_id).first()
+        
+        if not diagnosis:
+            raise HTTPException(
+                status_code=404,
+                detail="Diagnosis record not found"
+            )
+        
+        # Update visibility
+        diagnosis.visibility = visibility
+        db.commit()
+        db.refresh(diagnosis)
+        
+        return {
+            "success": True,
+            "message": f"Visibility updated to {visibility}",
+            "id": diagnosis.id,
+            "visibility": diagnosis.visibility
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating visibility: {str(e)}"
         )

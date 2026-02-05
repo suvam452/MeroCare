@@ -50,7 +50,8 @@ interface LandingProps {
   onOpenProfile: (mode: NewBarMode) => void; // opens NewBar with correct tab (about/edit/password)
   onOpenAddFamily: () => void;            // navigate to AddFamily invitation screen
   onOpenNotification: () => void;         // bell → notification screen (incoming family requests)
-  onOpenHistory: () => void;              // navigate to History.tsx (medical history)
+  onOpenHistory: () => void;    
+  onOpenDiagnosisHistory: () => void;          // navigate to History.tsx (medical history)
   familyMembers: FamilyMember[];          // backend: current accepted family list for this user
   onOpenReminders: () => void;            // navigate to Reminder.tsx (medication & task reminders)
 }
@@ -64,6 +65,7 @@ const Landing = ({
   onOpenAddFamily,
   onOpenNotification,
   onOpenHistory,
+  onOpenDiagnosisHistory,
   familyMembers,
   onOpenReminders,
 }: LandingProps) => {
@@ -306,7 +308,20 @@ const Landing = ({
             </View>
           </View>
 
-
+{/* My History Button - Add this NEW section */}
+<View style={styles.myHistorySection}>
+  <TouchableOpacity
+    style={styles.myHistoryButton}
+    activeOpacity={0.7}
+    onPress={() => onOpenDiagnosisHistory()} // This will open History screen
+  >
+    <View style={styles.myHistoryContent}>
+      <Text style={styles.myHistoryIcon}>📋</Text>
+      <Text style={styles.myHistoryText}>My History</Text>
+    </View>
+   
+  </TouchableOpacity>
+</View>
           {/* FAMILY – shows message when empty, list after accept */}
           {/* backend: this section reflects familyMembers prop coming from API */}
           <View style={styles.familySection}>
@@ -865,4 +880,36 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
+  myHistorySection: {
+  marginTop: 0,
+  marginBottom: 15,
+  paddingHorizontal: 5,
+},
+myHistoryButton: {
+  backgroundColor: '#fdfdfd',
+  borderRadius: 6,
+  padding: 12,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3,
+},
+myHistoryContent: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+myHistoryIcon: {
+  fontSize: 18,
+  marginRight: 12,
+},
+myHistoryText: {
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#0f5339',
+},
+
 });

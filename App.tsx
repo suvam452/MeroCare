@@ -23,7 +23,7 @@ import History from './History';
 import Reminder from './Reminder';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './src/services/api';
-
+import DiagnosisHistory from './DiagnosisHistory';
 
 const { height } = Dimensions.get('window');
 
@@ -49,7 +49,8 @@ type ScreenType =
   | 'addFamily'
   | 'notification'
   | 'history'
-  | 'reminder';
+  | 'reminder'
+  | 'diagnosisHistory';
 
 
 type FamilyMember = {
@@ -228,6 +229,7 @@ const App = () => {
         onOpenHistory={() => setCurrentScreen('history')}
         familyMembers={familyMembers}
         onOpenReminders={() => setCurrentScreen('reminder')}
+        onOpenDiagnosisHistory={() => setCurrentScreen('diagnosisHistory')}
       />
     );
   }
@@ -290,6 +292,10 @@ const App = () => {
         }}
       />
     );
+  }
+// DIAGNOSIS HISTORY
+  if (currentScreen === 'diagnosisHistory') {
+    return <DiagnosisHistory onBack={() => setCurrentScreen('landing')} />;
   }
 
 
