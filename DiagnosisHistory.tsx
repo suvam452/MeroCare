@@ -63,6 +63,39 @@ const DiagnosisHistory = ({ onBack }: DiagnosisHistoryProps) => {
     }
   };
 
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      'Delete Diagnosis',
+      'Are you sure you want to delete this diagnosis record? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteRecord(id),
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const deleteRecord = async (id: number) => {
+    try {
+      await api.delete(`/diagnosis/delete/${id}`);
+      
+      // Remove from local state
+      setHistory(prevHistory => prevHistory.filter(item => item.id !== id));
+      
+      Alert.alert('Success', 'Diagnosis record deleted successfully');
+    } catch (error) {
+      console.error('Error deleting record:', error);
+      Alert.alert('Error', 'Failed to delete diagnosis record');
+    }
+  };
+
   // Filter history based on selected tab
   const filteredHistory = history.filter(item => {
     if (selectedTab === 'all') return true;
@@ -82,24 +115,36 @@ const DiagnosisHistory = ({ onBack }: DiagnosisHistoryProps) => {
             minute: '2-digit',
           })}
         </Text>
-        <TouchableOpacity
-          style={[
-            styles.visibilityBadge,
-            item.visibility === 'private'
-              ? styles.privateBadge
-              : styles.publicBadge,
-          ]}
-          onPress={() => toggleVisibility(item.id, item.visibility)}
-        >
-          <Text style={styles.badgeText}>
-            {item.visibility === 'private' ? '🔒 Private' : '👥 Shared'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={[
+              styles.visibilityBadge,
+              item.visibility === 'private'
+                ? styles.privateBadge
+                : styles.publicBadge,
+            ]}
+            onPress={() => toggleVisibility(item.id, item.visibility)}
+          >
+            <Text style={styles.badgeText}>
+              {item.visibility === 'private' ? '🔒 Private' : '👥 Shared'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Full Diagnosis Content */}
       <View style={styles.contentSection}>
         <Text style={styles.contentText}>{item.symptoms}</Text>
+      </View>
+
+      {/* Delete Button */}
+      <View style={styles.actionSection}>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDelete(item.id)}
+        >
+          <Text style={styles.deleteButtonText}>🗑️ Delete</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -276,6 +321,10 @@ const styles = StyleSheet.create({
     color: '#8E9AAF',
     fontWeight: '500',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   visibilityBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -299,6 +348,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2C3E50',
     lineHeight: 22,
+  },
+  actionSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F3F8',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  deleteButton: {
+    backgroundColor: '#FFE5E5',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFB8B8',
+  },
+  deleteButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#D32F2F',
   },
   loadingContainer: {
     flex: 1,

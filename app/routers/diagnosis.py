@@ -223,3 +223,39 @@ async def update_visibility(
             status_code=500,
             detail=f"Error updating visibility: {str(e)}"
         )
+
+@router.delete("/delete/{diagnosis_id}")
+async def delete_diagnosis(
+    diagnosis_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a diagnosis record from the database
+    """
+    try:
+        # Find the diagnosis record
+        diagnosis = db.query(DiagnosisModel).filter(DiagnosisModel.id == diagnosis_id).first()
+        
+        if not diagnosis:
+            raise HTTPException(
+                status_code=404,
+                detail="Diagnosis record not found"
+            )
+        
+        # Delete the record
+        db.delete(diagnosis)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Diagnosis record deleted successfully",
+            "id": diagnosis_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting diagnosis: {str(e)}"
+        )
