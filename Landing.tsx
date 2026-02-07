@@ -15,6 +15,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import api from './src/services/api'
 
 // I keep screen width here so layout and drawer width can adapt on any device
 const { width } = Dimensions.get('window');
@@ -40,6 +41,7 @@ type FamilyMember = {
   name: string;     // full name of the family member
   relation: string; // e.g. Father, Mother, Brother, etc.
   emoji: string;    // small icon decided on frontend from relation
+  role:string
 };
 
 
@@ -52,7 +54,7 @@ interface LandingProps {
   onOpenNotification: () => void;         // bell → notification screen (incoming family requests)
   onOpenHistory: () => void;    
   onOpenDiagnosisHistory: () => void;          // navigate to History.tsx (medical history)
-  familyMembers: FamilyMember[];          // backend: current accepted family list for this user
+  //familyMembers: FamilyMember[];          // backend: current accepted family list for this user
   onOpenReminders: () => void;            // navigate to Reminder.tsx (medication & task reminders)
 }
 
@@ -66,7 +68,7 @@ const Landing = ({
   onOpenNotification,
   onOpenHistory,
   onOpenDiagnosisHistory,
-  familyMembers,
+  //familyMembers,
   onOpenReminders,
 }: LandingProps) => {
   // local UI state for this home screen only – does not go to backend
@@ -74,11 +76,63 @@ const Landing = ({
   const [typewriterText, setTypewriterText] = useState('');  // animated helper text from nurse bot
   const [typing, setTyping] = useState(false);               // prevent overlapping typewriter runs
   const [photoModalVisible, setPhotoModalVisible] = useState(false); // small modal to pick profile photo
-
+  const [myFamily, setMyFamily] = useState<FamilyMember[]>([]);
+  const [loadingFamily, setLoadingFamily] = useState(false);
+  const [sentInvites, setSentInvites] = useState<any[]>([]);
+  const [loadingInvites, setLoadingInvites] = useState(false);
 
   // friendly intro line from “Mero Care” nurse bot
   const fullMessage = 'Hi, I am Mero Care, caring for you everyday 😊';
 
+  useEffect(() => {
+    fetchFamilyData();
+  }, []);
+
+  const fetchFamilyData = async () => {
+    try {
+      setLoadingFamily(true);
+      
+      const userRes = await api.get('/users/me');
+      const myId = userRes.data.id;
+      const response = await api.get(`/family/list/${myId}`);
+      const mappedMembers = response.data.map((m: any) => ({
+        id: m.id.toString(),
+        name: m.full_name,
+        relation: m.role, 
+        emoji: getEmojiForRole(m.family_role) ,
+        role: m.role
+      }));
+      const others = mappedMembers.filter((m: any) => m.id !== myId.toString());
+      
+      setMyFamily(others);
+
+    } catch (error) {
+      console.log("Error fetching family:", error);
+    } finally {
+      setLoadingFamily(false);
+    }
+
+    try {
+      setLoadingInvites(true);
+      // Calls the new endpoint we created in Step 1
+      const response = await api.get('/family/sent-invites'); 
+      setSentInvites(response.data);
+    } catch (error) {
+      console.log("Error fetching sent invites:", error);
+    } finally {
+      setLoadingInvites(false);
+    }
+  };
+
+  const getEmojiForRole = (role: string) => {
+    if (!role) return '🙂';
+    const r = role.toLowerCase();
+    if (r.includes('father') || r.includes('dad')) return '👨';
+    if (r.includes('mother') || r.includes('mom')) return '👩';
+    if (r.includes('brother') || r.includes('son')) return '👦';
+    if (r.includes('sister') || r.includes('daughter')) return '👧';
+    return '🙂';
+  };
 
   // nurse avatar click → typewriter effect
   const handleNurseClick = () => {
@@ -332,7 +386,7 @@ const Landing = ({
             </View>
 
 
-            {familyMembers.length === 0 ? (
+            {myFamily.length === 0 ? (
               // empty state when user has not accepted any family request yet
               <View style={styles.familyMemberCard}>
                 <View style={styles.familyAvatar}>
@@ -348,14 +402,14 @@ const Landing = ({
             ) : (
               // once Notification Accept is pressed and backend adds relation,
               // parent passes updated familyMembers and each item appears here
-              familyMembers.map(member => (
+              myFamily.map(member => (
                 <View key={member.id} style={styles.familyMemberCard}>
                   <View style={styles.familyAvatar}>
                     <Text style={styles.avatarEmoji}>{member.emoji}</Text>
                   </View>
                   <View style={styles.familyInfo}>
                     <Text style={styles.familyName}>{member.name}</Text>
-                    <Text style={styles.familyRelation}>{member.relation}</Text>
+                    <Text style={styles.familyRelation}>{member.role}</Text>
                   </View>
                 </View>
               ))
@@ -911,5 +965,49 @@ myHistoryText: {
   fontWeight: '700',
   color: '#0f5339',
 },
+pendingSection: {
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E3EFE8',
+    borderRadius: 18,
+    padding: 14,
+  },
+  pendingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: '#FFECB3', // Default: Pending (Yellow)
+  },
+  statusAccepted: {
+    backgroundColor: '#EAF8F0', // Green
+  },
+  statusDenied: {
+    backgroundColor: '#FFEBEE', // Red
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FF9900', // Default: Orange
+  },
 
+  recordsCountPill: {
+    minWidth: 30,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#EAF8F0', // Light green-gray background
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordsCountText: { 
+    color: ACCENT_COLOR, 
+    fontWeight: '800', 
+    fontSize: 13 
+  },
 });

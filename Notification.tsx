@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import api from './src/services/api'
 
 const THEME_COLOR = '#255E67';
 const ACCENT_COLOR = '#2FA678';
@@ -21,45 +23,46 @@ const ACCEPT_COLOR = '#2FA678';
 
 type RequestStatus = 'pending' | 'accepted' | 'rejected';
 
-type ReminderNotification = {
+/*type ReminderNotification = {
   id: string;
   title: string;      // e.g. "Morning BP Medicine"
   timeText: string;   // e.g. "Today • 08:00 AM"
   statusLabel: string; // e.g. "Upcoming", "Missed"
-};
+};*/
 
 
 interface IncomingRequest {
-  id: string;
-  name: string;
-  email: string;
-  relation: string;
-  requestedBy: string;
-  timeAgo: string;
+  invite_id: number;
+  from_name: string;
+  from_email: string;
+  assigned_role: string
 }
 
 
 interface SentRequest {
-  id: string;
-  name: string;
-  email: string;
-  relation: string;
+  invite_id: number;
+  to_name: string;
+  to_email: string;
+  assigned_role: string;
   status: RequestStatus;
-  timeAgo: string;
 }
 
 
 interface NotificationProps {
   onBack: () => void;
   // callback to tell parent to update Landing's family list
-  onAcceptFamily: (payload: { id: string; name: string; relation: string }) => void;
+  onFamilyChange: () => void;
 }
 
 
 // Notification center for family connection requests
-const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
+const Notification = ({ onBack, onFamilyChange }: NotificationProps) => {
+  const [incomingRequests, setIncomingRequests] = useState<IncomingRequest[]>([]);
+  const [sentRequests, setSentRequests] = useState<SentRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
   // dummy reminder alerts – backend: replace with GET /reminders/notifications
-  const [reminderAlerts] = useState<ReminderNotification[]>([
+  /*const [reminderAlerts] = useState<ReminderNotification[]>([
     {
       id: 'r1',
       title: 'Morning BP Medicine',
@@ -122,54 +125,79 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
       status: 'rejected',
       timeAgo: '2 days ago',
     },
-  ]);
+  ]);*/
 
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const userRes = await api.get('/users/me');
+      const myId = userRes.data.id;
+      const incomingRes = await api.get(`/family/pending-requests/${myId}`);
+      const mappedIncoming = incomingRes.data.map((item: any) => ({
+        invite_id: item.invite_id,
+        from_name: item.from_user ? item.from_user.full_name : (item.from_name || 'Unknown'),
+        from_email: item.from_user ? item.from_user.email : (item.from_email || 'No Email'),
+        assigned_role: item.assigned_role
+      }));
+      setIncomingRequests(mappedIncoming);
+
+      const sentRes = await api.get('/family/sent-invites');
+
+      const mappedSent = sentRes.data.map((item: any) => ({
+        invite_id: item.invite_id,
+        to_name: item.to_email || 'Pending User',
+        to_email: item.to_email,
+        assigned_role: item.assigned_role,
+        status: item.status
+      }));
+      setSentRequests(mappedSent);
+      
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      Alert.alert("Error", "Failed to load notifications.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Accept handler – backend will mark request as accepted and link family
-  const handleAccept = (id: string) => {
-    /**
-     * BACKEND INTEGRATION POINT
-     * API: POST /family/requests/{id}/accept
-     *
-     * After success:
-     * - remove from incomingRequests
-     * - refresh family list on Landing (or global state)
-     */
-
-
-    const req = incomingRequests.find(r => r.id === id);
-    if (!req) {
-      return;
+  const handleAccept = async (inviteId: number) => {
+    setActionLoading(inviteId);
+    try {
+      await api.post(`/family/accept/${inviteId}`); // Endpoint uses ID in the path
+      Alert.alert('Success', 'You have joined the family!');
+      
+      await fetchAllData();
+      if (onFamilyChange) {
+        onFamilyChange(); 
+      }
+    } catch (error: any) {
+      console.log("Accept Error:", error); // Check console to see real error
+      const msg = error.response?.data?.detail || 'Failed to accept invite.';
+      Alert.alert('Error', msg);
+    } finally {
+      setActionLoading(null);
     }
-
-
-    // notify parent so it adds this member to Landing's family list
-    onAcceptFamily({
-      id: req.id,
-      name: req.name,
-      relation: req.relation,
-    });
-
-
-    setIncomingRequests(prev => prev.filter(item => item.id !== id));
-    Alert.alert(
-      'Request Accepted',
-      'This family member will be added to your account.',
-    );
   };
 
 
   // Reject handler – backend only updates request status
-  const handleReject = (id: string) => {
-    /**
-     * BACKEND INTEGRATION POINT
-     * API: POST /family/requests/{id}/reject
-     *
-     * After success:
-     * - remove from incomingRequests
-     */
-    setIncomingRequests(prev => prev.filter(item => item.id !== id));
-    Alert.alert('Request Rejected', 'This request has been removed.');
+  const handleReject = async (inviteId: number) => {
+    setActionLoading(inviteId);
+    try {
+      await api.post(`/family/reject/${inviteId}`); 
+      Alert.alert('Request Rejected', 'The request has been removed.');
+      await fetchAllData(); 
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || 'Failed to reject invite.';
+      Alert.alert('Error', msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
 
@@ -210,7 +238,7 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
 
       <ScrollView contentContainerStyle={styles.container}>
         {/* SECTION: Reminder alerts – backend: GET /reminders/notifications */}
-        <Text style={styles.sectionTitle}>Reminder alerts</Text>
+        {/*<Text style={styles.sectionTitle}>Reminder alerts</Text>
         {reminderAlerts.length === 0 ? (
           <View style={styles.emptyBox}>
             <Text style={styles.emptyTitle}>No reminder alerts</Text>
@@ -230,27 +258,24 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
               </View>
             </View>
           ))
-        )}
+        )}*/}
 
 
         {/* SECTION: Incoming Requests – invitations where current user is receiver */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
           Incoming Requests
         </Text>
-        {incomingRequests.length === 0 ? (
+        {incomingRequests.length === 0 && !loading ? (
           <View style={styles.emptyBox}>
             <Text style={styles.emptyTitle}>No new requests</Text>
-            <Text style={styles.emptySubtitle}>
-              When someone adds you as their family, it will appear here.
-            </Text>
           </View>
         ) : (
           incomingRequests.map(req => (
-            <View key={req.id} style={styles.card}>
+            <View key={req.invite_id} style={styles.card}>
               <View style={styles.cardLeft}>
                 <View style={styles.avatarCircle}>
                   <Text style={styles.avatarText}>
-                    {req.name.charAt(0).toUpperCase()}
+                    {req.from_name.charAt(0).toUpperCase()}
                   </Text>
                 </View>
               </View>
@@ -258,30 +283,35 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
 
               <View style={styles.cardRight}>
                 <View style={styles.cardHeaderRow}>
-                  <Text style={styles.cardName}>{req.name}</Text>
-                  <Text style={styles.cardTime}>{req.timeAgo}</Text>
+                  <Text style={styles.cardName}>{req.from_name}</Text>
+                  {/*<Text style={styles.cardTime}>{req.timeAgo}</Text>*/}
                 </View>
-                <Text style={styles.cardEmail}>{req.email}</Text>
+                <Text style={styles.cardEmail}>{req.from_email}</Text>
                 <Text style={styles.cardRelation}>
                   Relation:{' '}
-                  <Text style={{ fontWeight: '900' }}>{req.relation}</Text>
+                  <Text style={{ fontWeight: '900' }}>{req.assigned_role}</Text>
                 </Text>
-                <Text style={styles.cardInfo}>{req.requestedBy}</Text>
+                {/*<Text style={styles.cardInfo}>{req.requestedBy}</Text>*/}
 
 
                 {/* actions for this incoming request */}
                 <View style={styles.actionRow}>
                   <TouchableOpacity
                     style={[styles.actionButton, styles.rejectButton]}
-                    onPress={() => handleReject(req.id)}
+                    onPress={() => handleReject(req.invite_id)}
+                    disabled={actionLoading === req.invite_id}
                   >
                     <Text style={styles.rejectText}>Reject</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionButton, styles.acceptButton]}
-                    onPress={() => handleAccept(req.id)}
+                    onPress={() => handleAccept(req.invite_id)}
+                    disabled={actionLoading === req.invite_id}
                   >
-                    <Text style={styles.acceptText}>Accept</Text>
+                    {actionLoading === req.invite_id ? (
+                        <ActivityIndicator size="small" color={ACCEPT_COLOR} />
+                     ) : (
+                    <Text style={styles.acceptText}>Accept</Text>)}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -296,7 +326,7 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
         </Text>
 
 
-        {sentRequests.length === 0 ? (
+        {sentRequests.length === 0 && !loading ? (
           <View style={styles.emptyBox}>
             <Text style={styles.emptyTitle}>No invitations sent</Text>
             <Text style={styles.emptySubtitle}>
@@ -305,20 +335,20 @@ const Notification = ({ onBack, onAcceptFamily }: NotificationProps) => {
           </View>
         ) : (
           sentRequests.map(invite => (
-            <View key={invite.id} style={styles.sentCard}>
+            <View key={invite.invite_id} style={styles.sentCard}>
               <View style={styles.sentRowTop}>
                 <View style={styles.sentLeft}>
-                  <Text style={styles.sentName}>{invite.name}</Text>
-                  <Text style={styles.sentEmail}>{invite.email}</Text>
+                  <Text style={styles.sentName}>{invite.to_name}</Text>
+                  <Text style={styles.sentEmail}>{invite.to_email}</Text>
                   <Text style={styles.sentRelation}>
-                    Relation: {invite.relation}
+                    Relation: {invite.assigned_role}
                   </Text>
                 </View>
                 {renderStatusBadge(invite.status)}
               </View>
-              <View style={styles.sentRowBottom}>
+              {/*<View style={styles.sentRowBottom}>
                 <Text style={styles.sentTime}>{invite.timeAgo}</Text>
-              </View>
+              </View>*/}
             </View>
           ))
         )}

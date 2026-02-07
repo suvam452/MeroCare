@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from './src/services/api'
+import { Picker } from '@react-native-picker/picker';
 
 // three modes controlled from Landing drawer
 type Mode = 'about' | 'edit' | 'password';
@@ -32,6 +33,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
   const [phone, setPhone] = useState('');
   const [bloodGroup, setBloodGroup] = useState('');
   const [address, setAddress] = useState('');
+  const [gender, setGender] = useState('');
 
   // Birth of Date – string for now, can be wired to date picker later
   const [birthOfDate, setBirthOfDate] = useState('');
@@ -52,6 +54,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
     bloodGroup?: string;
     address?: string;
     birthOfDate?: string;
+    gender?: string;
     oldPassword?: string;
     newPassword?: string;
     confirmPassword?: string;
@@ -72,6 +75,7 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
       setAddress(data.address||'');
       setBloodGroup(data.blood_group||'');
       setBirthOfDate(data.dob||'');
+      setGender(data.gender||'');
     }catch(error){
       console.error("Fetch Profile Error:",error);
       Alert.alert("Error","Could not load profile.");
@@ -133,7 +137,8 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
         mobile_number:phone,
         blood_group:bloodGroup,
         address:address,
-        dob:birthOfDate
+        dob:birthOfDate,
+        gender:gender
       };
       await api.put('/users/me',payload);
       Alert.alert('Success', 'Profile updated successfully');
@@ -270,6 +275,12 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
               <Text style={styles.label}>Address</Text>
               <Text style={styles.value}>{address}</Text>
             </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Gender</Text>
+              <Text style={styles.value}>{gender || 'Not Set'}</Text>
+            </View>
+            
           </View>
         )}
 
@@ -346,6 +357,20 @@ const NewBar = ({ mode, onBack }: NewBarProps) => {
             {errors.birthOfDate && (
               <Text style={styles.errorText}>{errors.birthOfDate}</Text>
             )}
+            
+            <Text style={styles.inputLabel}>Gender</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={gender}
+                onValueChange={itemValue => setGender(itemValue)}
+                style={styles.pickerStyle}
+              >
+                <Picker.Item label="Select Gender" value="" />
+                <Picker.Item label="Male" value="Male" />
+                <Picker.Item label="Female" value="Female" />
+                <Picker.Item label="Other" value="Other" />
+              </Picker>
+            </View>
 
             <Text style={styles.inputLabel}>Address</Text>
             <TextInput
@@ -699,4 +724,16 @@ const styles = StyleSheet.create({
   modalCancelText: {
     color: '#255E67',
   },
+  pickerContainer: {
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        borderRadius: 12,
+        marginBottom: 12,
+        overflow: 'hidden',
+        backgroundColor: '#FFFFFF',
+    },
+    pickerStyle: {
+        height: 48,
+        color: '#133D2E',
+    },
 });

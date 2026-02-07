@@ -192,8 +192,12 @@ export default function LoginScreen({
       onLoginSuccess(token);
     } catch(error:any) {
       console.error('Login Error',error);
-      const errorMessage=error.response?.data?.detail||'Failed to login'
-      Alert.alert('Error', 'Failed to login. Please try again.');
+      let errorMessage = "Login failed. Please try again later."; // The current generic message
+
+      if (error.response && error.response.data && error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+      } 
+      Alert.alert("Login Failed", errorMessage);
     } finally {
       setLoading(false);
     }

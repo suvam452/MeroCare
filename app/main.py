@@ -1,10 +1,9 @@
 from fastapi import FastAPI
 from .database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import authentication,users,diagnosis
+from .routers import authentication,users,diagnosis,family
 from . import models
 
-Base.metadata.create_all(bind=engine)
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="MeroCare",
@@ -27,7 +26,7 @@ app.add_middleware(
 app.include_router(authentication.router,tags=["Authentication"])
 app.include_router(users.router,prefix="/users",tags=["Users"])
 app.include_router(diagnosis.router,prefix="/diagnosis",tags=["Diagnosis"])
-
+app.include_router(family.router,prefix="/family",tags=["Family"])
 
 
 @app.get("/")
