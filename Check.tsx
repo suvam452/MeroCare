@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import RNFS from 'react-native-fs';
 import RNShare from 'react-native-share';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -276,10 +277,19 @@ const handleQuickShare = async (diagnosisText: string) => {
 };
 const saveToHistory = async (visibility: 'public' | 'private') => {
   try {
+    // Get the authentication token
+    const token = await AsyncStorage.getItem('userToken');
+    
+    if (!token) {
+      Alert.alert('Error', 'Please login again');
+      return;
+    }
+
     const response = await fetch('http://192.168.1.70:8000/diagnosis/save-history', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,  
       },
       body: JSON.stringify({
         user_diagnosis: selectedDiagnosis,
@@ -291,10 +301,14 @@ const saveToHistory = async (visibility: 'public' | 'private') => {
     if (response.ok) {
       Alert.alert('Success!', 'Diagnosis saved to history');
       setShowVisibilityModal(false);
+      setSelectedDiagnosis('');
     } else {
-      Alert.alert('Error', 'Failed to save diagnosis');
+      const errorData = await response.json();
+      console.error('Save error:', errorData);
+      Alert.alert('Error', errorData.detail || 'Failed to save diagnosis');
     }
   } catch (error) {
+    console.error('Save to history error:', error);
     Alert.alert('Error', 'Could not save to history');
   }
 };

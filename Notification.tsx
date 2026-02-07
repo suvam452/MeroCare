@@ -51,7 +51,8 @@ interface SentRequest {
 interface NotificationProps {
   onBack: () => void;
   // callback to tell parent to update Landing's family list
-  onFamilyChange: () => void;
+    onAcceptFamily: (data: { id: any; name: any; relation: any }) => void;
+  onFamilyChange?: () => void;
 }
 
 

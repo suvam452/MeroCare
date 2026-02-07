@@ -56,6 +56,7 @@ interface LandingProps {
   onOpenDiagnosisHistory: () => void;          // navigate to History.tsx (medical history)
   //familyMembers: FamilyMember[];          // backend: current accepted family list for this user
   onOpenReminders: () => void;            // navigate to Reminder.tsx (medication & task reminders)
+  onOpenFamilyHistory: () => void;
 }
 
 
@@ -68,6 +69,7 @@ const Landing = ({
   onOpenNotification,
   onOpenHistory,
   onOpenDiagnosisHistory,
+  onOpenFamilyHistory,
   //familyMembers,
   onOpenReminders,
 }: LandingProps) => {
@@ -374,6 +376,20 @@ const Landing = ({
       <Text style={styles.myHistoryText}>My History</Text>
     </View>
    
+  </TouchableOpacity>
+</View>
+
+{/* My Family Button */}
+<View style={styles.myHistorySection}>
+  <TouchableOpacity
+    style={styles.myHistoryButton}
+    activeOpacity={0.7}
+    onPress={() => onOpenFamilyHistory()}
+  >
+    <View style={styles.myHistoryContent}>
+      <Text style={styles.myHistoryIcon}>👨‍👩‍👧‍👦</Text>
+      <Text style={styles.myHistoryText}>My Family</Text>
+    </View>
   </TouchableOpacity>
 </View>
           {/* FAMILY – shows message when empty, list after accept */}

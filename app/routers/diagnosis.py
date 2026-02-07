@@ -10,6 +10,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Diagnosis as DiagnosisModel
+from app import oauth2  
+from app.models import User
 import pytz
 load_dotenv()
 
@@ -113,8 +115,12 @@ def diagnosis_home():
 @router.post("/save-history")
 async def save_history(
     request: SaveHistoryRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(oauth2.get_current_user)  # <- ADDED: Get logged-in user
 ):
+    """
+    Save diagnosis to the current user's history
+    """
     try:
         # Parse as UTC time
         utc_time = datetime.fromisoformat(request.created_at.replace('Z', '+00:00'))
@@ -123,9 +129,9 @@ async def save_history(
         nepal_tz = pytz.timezone('Asia/Kathmandu')
         nepal_time = utc_time.astimezone(nepal_tz)
         
-        # Create new diagnosis record
+        # Create new diagnosis record with CURRENT USER'S ID
         new_diagnosis = DiagnosisModel(
-            user_id=None,
+            user_id=current_user.id,  # <- FIXED: Now saves the actual user ID
             user_diagnosis=request.user_diagnosis,
             created_at=nepal_time,
             visibility=request.visibility
@@ -147,15 +153,20 @@ async def save_history(
             detail=f"Error saving diagnosis: {str(e)}"
         )
 
+
 @router.get("/my", response_model=list[DiagnosisHistoryResponse])
 async def get_my_diagnosis_history(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(oauth2.get_current_user)  # <- ADDED: Get logged-in user
 ):
     """
-    Fetch all diagnosis history from the database ordered by most recent first
+    Fetch ONLY the current user's diagnosis history ordered by most recent first
     """
     try:
-        diagnoses = db.query(DiagnosisModel).order_by(DiagnosisModel.created_at.desc()).all()
+        # FIXED: Now filters by current user's ID
+        diagnoses = db.query(DiagnosisModel).filter(
+            DiagnosisModel.user_id == current_user.id  # <- CRITICAL FIX!
+        ).order_by(DiagnosisModel.created_at.desc()).all()
         
         # Transform database records to response format
         result = []
@@ -182,10 +193,11 @@ async def get_my_diagnosis_history(
 async def update_visibility(
     diagnosis_id: int,
     visibility: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(oauth2.get_current_user)  # <- ADDED: Security check
 ):
     """
-    Update the visibility of a diagnosis record
+    Update the visibility of a diagnosis record (only owner can update)
     """
     try:
         # Validate visibility value
@@ -202,6 +214,13 @@ async def update_visibility(
             raise HTTPException(
                 status_code=404,
                 detail="Diagnosis record not found"
+            )
+        
+        # ADDED: Security check - only owner can update
+        if diagnosis.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only update your own diagnosis records"
             )
         
         # Update visibility
@@ -224,13 +243,15 @@ async def update_visibility(
             detail=f"Error updating visibility: {str(e)}"
         )
 
+
 @router.delete("/delete/{diagnosis_id}")
 async def delete_diagnosis(
     diagnosis_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(oauth2.get_current_user)  # <- ADDED: Security check
 ):
     """
-    Delete a diagnosis record from the database
+    Delete a diagnosis record from the database (only owner can delete)
     """
     try:
         # Find the diagnosis record
@@ -240,6 +261,13 @@ async def delete_diagnosis(
             raise HTTPException(
                 status_code=404,
                 detail="Diagnosis record not found"
+            )
+        
+        # ADDED: Security check - only owner can delete
+        if diagnosis.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only delete your own diagnosis records"
             )
         
         # Delete the record
