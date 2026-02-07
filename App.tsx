@@ -20,7 +20,7 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import AddFamily from './AddFamily';
 import Notification from './Notification';
 import History from './History';
-import Reminder from './Reminder';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './src/services/api';
 import DiagnosisHistory from './DiagnosisHistory';
@@ -50,7 +50,7 @@ type ScreenType =
   | 'addFamily'
   | 'notification'
   | 'history'
-  | 'reminder'
+
   | 'diagnosisHistory'
   | 'familyHistory';
 
@@ -230,7 +230,7 @@ const App = () => {
         onOpenNotification={() => setCurrentScreen('notification')}
         onOpenHistory={() => setCurrentScreen('history')}
         //familyMembers={familyMembers}
-        onOpenReminders={() => setCurrentScreen('reminder')}
+        //onOpenReminders={() => setCurrentScreen('reminder')}
         onOpenDiagnosisHistory={() => setCurrentScreen('diagnosisHistory')}
         onOpenFamilyHistory={() => setCurrentScreen('familyHistory')}
       />
@@ -311,10 +311,10 @@ if (currentScreen === 'familyHistory') {
     return <History onBack={() => setCurrentScreen('landing')} />;
   }
 
-  // REMINDER
+  /* REMINDER
   if (currentScreen === 'reminder') {
     return <Reminder onBack={() => setCurrentScreen('landing')} />;
-  }
+  }*/
 
 
   // WELCOME

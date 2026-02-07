@@ -55,7 +55,7 @@ interface LandingProps {
   onOpenHistory: () => void;    
   onOpenDiagnosisHistory: () => void;          // navigate to History.tsx (medical history)
   //familyMembers: FamilyMember[];          // backend: current accepted family list for this user
-  onOpenReminders: () => void;            // navigate to Reminder.tsx (medication & task reminders)
+  //onOpenReminders: () => void;            // navigate to Reminder.tsx (medication & task reminders)
   onOpenFamilyHistory: () => void;
 }
 
@@ -71,7 +71,7 @@ const Landing = ({
   onOpenDiagnosisHistory,
   onOpenFamilyHistory,
   //familyMembers,
-  onOpenReminders,
+  //onOpenReminders,
 }: LandingProps) => {
   // local UI state for this home screen only – does not go to backend
   const [menuOpen, setMenuOpen] = useState(false);           // controls side drawer open/close
@@ -326,43 +326,19 @@ const Landing = ({
           </View>
 
 
-          {/* SERVICES – small grid of key features */}
-          {/* backend: each tile opens a separate feature/screen */}
-          <View style={styles.servicesSection}>
-            <Text style={styles.sectionTitle}>Services</Text>
-
-
-            <View style={styles.servicesGrid}>
-              {[
-                {
-                  icon: '🧾',
-                  title: 'Health History',
-                  onPress: onOpenHistory, // navigate to History screen
-                },
-                {
-                  icon: '👨‍👩‍👧',
-                  title: 'Add Family',
-                  onPress: onOpenAddFamily, // send family invitation (email-based)
-                },
-                {
-                  icon: '⏰',
-                  title: 'Reminders',
-                  onPress: onOpenReminders, // navigate to Reminder screen
-                },
-              ].map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.serviceCard}
-                  onPress={item.onPress}
-                >
-                  <View style={styles.serviceIconContainer}>
-                    <Text style={styles.serviceIcon}>{item.icon}</Text>
-                  </View>
-                  <Text style={styles.serviceTitle}>{item.title}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          {/* Add Family Button */}
+<View style={styles.myHistorySection}>
+  <TouchableOpacity
+    style={styles.myHistoryButton}
+    activeOpacity={0.7}
+    onPress={() => onOpenAddFamily()}
+  >
+    <View style={styles.myHistoryContent}>
+      <Text style={styles.myHistoryIcon}>👨‍👩‍👧</Text>
+      <Text style={styles.myHistoryText}>Add Family</Text>
+    </View>
+  </TouchableOpacity>
+</View>
 
 {/* My History Button - Add this NEW section */}
 <View style={styles.myHistorySection}>
