@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from './src/services/api';
+import { Picker } from '@react-native-picker/picker';
 
 const THEME_COLOR = '#265E68';
 const TEXT_COLOR = '#333';
@@ -85,6 +86,37 @@ const InputField = ({
   );
 };
 
+const GenderPicker = ({ value, onChange, error }: { value: string, onChange: (v: string) => void, error?: string }) => {
+  const hasError = !!error;
+  const genderOptions = ['Male', 'Female', 'Other'];
+
+  return (
+    <View style={styles.inputContainer}>
+      <View style={[
+        styles.inputRow,
+        { borderBottomWidth: 0, paddingBottom: 0, height: 50 },
+        hasError && { borderColor: ERROR_COLOR, borderWidth: 2, borderRadius: 10, height: 50 },
+      ]}>
+        <Text style={styles.inputIcon}>🚻</Text>
+        <View style={styles.inputDivider} />
+        
+        {/* The Picker component */}
+        <Picker
+          selectedValue={value}
+          onValueChange={onChange}
+          style={styles.pickerStyle}
+        >
+          <Picker.Item label="Select Gender" value="" enabled={!value} style={{color: PLACEHOLDER_COLOR}} />
+          {genderOptions.map( (g) => (
+             <Picker.Item key={g} label={g} value={g} />
+          ))}
+        </Picker>
+      </View>
+      {hasError && <Text style={styles.errorText}>{error}</Text>}
+    </View>
+  );
+};
+
 interface SignUpScreenProps {
   onBack?: () => void;
   onSignUpSuccess?: () => void;
@@ -103,6 +135,7 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
     dateOfBirth: '',
     address: '',
     bloodGroup: '',
+    gender:'',
     password: '',
     conformPassword: '',
   });
@@ -171,6 +204,12 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
       newErrors.conformPassword = 'Passwords do not match';
     }
 
+    if (!formData.gender.trim()) {
+      newErrors.gender = 'Please select your gender';
+    } else if (!['Male', 'Female', 'Other'].includes(formData.gender)) {
+        newErrors.gender = 'Invalid selection';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -189,7 +228,8 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
           mobile_number: formData.mobileNumber,
           address: formData.address,
           blood_group: formData.bloodGroup,
-          dob: formData.dateOfBirth
+          dob: formData.dateOfBirth,
+          gender:formData.gender
       };
       const response=await api.post('/signup',payload);
       console.log("Signup Successful",response.data);
@@ -204,6 +244,7 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
               dateOfBirth: '',
               address: '',
               bloodGroup: '',
+              gender:'',
               password: '',
               conformPassword: '',
             });
@@ -315,6 +356,11 @@ const SignUpScreen = ({ onBack, onSignUpSuccess }: SignUpScreenProps) => {
                 value={formData.conformPassword}
                 onChangeText={t => updateField('conformPassword', t)}
                 error={errors.conformPassword}
+              />
+              <GenderPicker
+                value={formData.gender}
+                onChange={t => updateField('gender', t)}
+                error={errors.gender}
               />
             </View>
 
@@ -479,6 +525,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  pickerStyle: {
+    flex: 1,
+    height: 50,
+    color: TEXT_COLOR,
   },
 });
 

@@ -12,7 +12,7 @@ class TokenData(BaseModel):
 class UserBase(BaseModel):
     email:EmailStr
     full_name:str
-  
+    gender:str
     blood_group:Optional[str]=None
     dob:Optional[date]=None
 
@@ -92,3 +92,11 @@ class DiagnosisHistoryResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class FamilyInviteRequest(BaseModel):
+    sender_id: int
+    receiver_email: EmailStr
+    role_for_receiver: str
+
+class FamilyMemberResponse(UserResponse):
+    role: str    

@@ -18,6 +18,12 @@ class User(Base):
     #mobile_number=Column(String(20),nullable=True)
     #address=Column(String(255),nullable=True)
 
+    family_id = Column(String(50), nullable=True)
+    family_role = Column(String(50), nullable=True)
+    is_main_member = Column(Boolean, default=False) 
+    sent_invites = relationship("FamilyConnection", foreign_keys="[FamilyConnection.sender_id]", back_populates="sender")
+    received_invites = relationship("FamilyConnection", foreign_keys="[FamilyConnection.receiver_id]", back_populates="receiver")
+
     @property
     def age(self):
         if self.dob:
@@ -34,12 +40,6 @@ class Diagnosis(Base):
     created_at=Column(DateTime(timezone=True),server_default=func.now())
     visibility=Column(String(10),default="public")
 
-class HealthTip(Base):
-    __tablename__="HealthTips"
-    id=Column(Integer,primary_key=True,index=True)
-    title=Column(String(200),nullable=False)
-    content=Column(Text,nullable=False)
-
 class MedicalHistory(Base):
     __tablename__="MedicalRecords"
     id=Column(Integer,primary_key=True,index=True)
@@ -49,3 +49,20 @@ class MedicalHistory(Base):
     doctor_name=Column(String(100),nullable=True)
     hospital_name=Column(String(150),nullable=True)
     appointment_date=Column(Date,nullable=True)
+
+class Family(Base):
+    __tablename__ = "families"
+    id = Column(Integer, primary_key=True, index=True)
+    family_name = Column(String(100), default="My Family")
+
+class FamilyConnection(Base):
+    __tablename__ = "family_connections"
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("UserInfo.id"))
+    receiver_id = Column(Integer, ForeignKey("UserInfo.id"))
+    receiver_role = Column(String(50))   
+    target_family_id = Column(String(50)) 
+    status = Column(String(20), default="pending") 
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_invites")
+    receiver = relationship("User", foreign_keys=[receiver_id], back_populates="received_invites")

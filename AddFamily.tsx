@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import api from './src/services/api';
 
 const THEME_COLOR = '#255E67';
 const ACCENT_COLOR = '#2FA678';
@@ -53,42 +54,30 @@ const AddFamily = ({ onBack }: AddFamilyProps) => {
 
     setLoading(true);
 
-    /**
-     * ============================================
-     * BACKEND INTEGRATION POINT (IMPORTANT)
-     * ============================================
-     * API: POST /family/invite
-     *
-     * Payload format (DO NOT CHANGE):
-     * {
-     *   contact: string,        // email only
-     *   relation: string,       // selected relation
-     *   invitedBy: userId,      // logged-in user id
-     * }
-     *
-     * Expected Response:
-     * {
-     *   success: boolean,
-     *   status: "pending"
-     * }
-     *
-     * After success:
-     * - Show "Invitation Sent"
-     * - Backend will handle accept/reject
-     * - Once accepted → show on Landing Page
-     *
-     * This screen is ready for plug-and-play with backend when my friend connects it.
-     */
-
-    // fake delay for now – will be replaced by real API call later
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const userRes = await api.get('/users/me');
+      const senderId = userRes.data.id;
+      const payload = {
+        sender_id: senderId,
+        receiver_email: contact.trim(),
+        role_for_receiver: relation
+      };
+      await api.post('/family/invite', payload);
       Alert.alert(
-        'Invitation Sent',
-        'Your family member will appear after they accept the request.',
+        'Invitation Sent',' ',
+        [{ text: "OK", onPress: onBack }]
       );
-      onBack();
-    }, 1200);
+      } catch (error:any) {
+      console.log(error); 
+      if (error.response?.status === 404) {
+        Alert.alert("User Not Found", "This email is not registered on the app yet.");
+      } else {
+        const msg = error.response?.data?.detail || "Failed to send invite.";
+        Alert.alert("Error", msg);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

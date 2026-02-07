@@ -12,7 +12,7 @@ def create_user(db:Session,user:schemas.UserCreate):
         hashed_password=hashed_password,
         dob=user.dob,
         blood_group=user.blood_group,
-     
+        gender=user.gender
     )
     db.add(db_user)
     db.commit()

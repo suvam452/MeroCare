@@ -2,6 +2,18 @@ from passlib.context import CryptContext
 
 pwd_context=CryptContext(schemes=["bcrypt"],deprecated="auto")
 
+INVERSE_RELATIONS = {
+    "Father": "Child",
+    "Mother": "Child",
+    "Son": "Parent",
+    "Daughter": "Parent",
+    "Spouse": "Spouse",
+    "Brother": "Sibling",
+    "Sister": "Sibling",
+    "Guardian": "Ward",
+    "Ward": "Guardian",
+}
+
 class Hash:
     @staticmethod
     def bcrypt(password:str):
